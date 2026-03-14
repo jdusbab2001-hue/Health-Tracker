@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Health & Food Tracker</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #ffffff;
+    --bg-secondary: #f5f4f1;
+    --bg-tertiary: #eeecea;
+    --text: #1a1a18;
+    --text-secondary: #6b6b67;
+    --text-tertiary: #9e9e99;
+    --border: rgba(0,0,0,0.12);
+    --border-md: rgba(0,0,0,0.22);
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --green-bg: #EAF3DE; --green-text: #3B6D11; --green-border: #639922;
+    --amber-bg: #FAEEDA; --amber-text: #854F0B; --amber-border: #BA7517;
+    --coral-bg: #FAECE7; --coral-text: #993C1D; --coral-border: #D85A30;
+    --red-bg: #F7C1C1; --red-text: #791F1F; --red-border: #A32D2D;
+    --blue-bg: #E6F1FB; --blue-text: #185FA5; --blue-border: #378ADD;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a; --bg-secondary: #242422; --bg-tertiary: #2c2c2a;
+      --text: #f0ede8; --text-secondary: #9e9e99; --text-tertiary: #6b6b67;
+      --border: rgba(255,255,255,0.10); --border-md: rgba(255,255,255,0.20);
+      --green-bg: #173404; --green-text: #C0DD97; --green-border: #3B6D11;
+      --amber-bg: #412402; --amber-text: #FAC775; --amber-border: #854F0B;
+      --coral-bg: #4A1B0C; --coral-text: #F5C4B3; --coral-border: #993C1D;
+      --red-bg: #501313; --red-text: #F7C1C1; --red-border: #791F1F;
+      --blue-bg: #042C53; --blue-text: #B5D4F4; --blue-border: #185FA5;
+    }
+  }
+
+  body { font-family: var(--font-ui); background: var(--bg-tertiary); color: var(--text); min-height: 100vh; }
+
+  .app-shell { max-width: 820px; margin: 0 auto; padding: 0 0 4rem; }
+
+  header {
+    background: var(--bg); border-bottom: 0.5px solid var(--border);
+    padding: 1.25rem 1.5rem 0; position: sticky; top: 0; z-index: 10;
+  }
+
+  .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px; }
+
+  h1 { font-size: 17px; font-weight: 600; color: var(--text); }
+
+  .sync-status {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 12px; color: var(--text-secondary);
+  }
+
+  .sync-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--text-tertiary); flex-shrink: 0;
+    transition: background 0.3s;
+  }
+  .sync-dot.connected { background: #639922; }
+  .sync-dot.syncing { background: #BA7517; animation: pulse 1s infinite; }
+  .sync-dot.error { background: #A32D2D; }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .tabs { display: flex; }
+  .tab {
+    padding: 8px 20px; font-size: 14px; font-family: var(--font-ui);
+    cursor: pointer; border: none; background: none; color: var(--text-secondary);
+    border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s;
+  }
+  .tab.active { color: var(--text); border-bottom-color: var(--text); font-weight: 500; }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  .content { padding: 1.5rem; }
+
+  /* Auth banner */
+  .auth-banner {
+    background: var(--blue-bg); border: 0.5px solid var(--blue-border);
+    border-radius: var(--radius-lg); padding: 1.25rem 1.5rem;
+    margin-bottom: 1.25rem; display: flex; align-items: flex-start; gap: 14px;
+  }
+  .auth-banner-icon { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+  .auth-banner-body { flex: 1; }
+  .auth-banner-title { font-size: 14px; font-weight: 500; color: var(--blue-text); margin-bottom: 4px; }
+  .auth-banner-desc { font-size: 13px; color: var(--blue-text); opacity: 0.85; margin-bottom: 12px; line-height: 1.5; }
+
+  /* Setup panel */
+  .setup-panel {
+    background: var(--bg); border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1.25rem;
+  }
+  .setup-title { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
+  .setup-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 1.25rem; line-height: 1.6; }
+  .setup-step { display: flex; gap: 12px; margin-bottom: 16px; align-items: flex-start; }
+  .step-num {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--bg-secondary); border: 0.5px solid var(--border-md);
+    font-size: 12px; font-weight: 600; color: var(--text-secondary);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;
+  }
+  .step-body { flex: 1; }
+  .step-label { font-size: 14px; font-weight: 500; margin-bottom: 3px; }
+  .step-detail { font-size: 13px; color: var(--text-secondary); line-height: 1.55; }
+  .step-detail a { color: var(--blue-text); }
+  .client-id-row { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+  .client-id-row input { flex: 1; font-size: 13px; }
+
+  .card {
+    background: var(--bg); border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1rem;
+  }
+
+  .section-label {
+    font-size: 11px; font-weight: 600; color: var(--text-secondary);
+    text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 10px;
+  }
+  .section { margin-bottom: 1.25rem; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 12px; color: var(--text-secondary); }
+
+  input[type=date], input[type=text], select, textarea {
+    font-family: var(--font-ui); font-size: 14px;
+    background: var(--bg-secondary); color: var(--text);
+    border: 0.5px solid var(--border-md); border-radius: var(--radius-md);
+    padding: 8px 10px; outline: none; transition: border-color 0.15s;
+  }
+  input[type=date]:focus, input[type=text]:focus, select:focus, textarea:focus { border-color: var(--text-secondary); }
+  input[type=date] { width: 160px; }
+  input[type=text] { width: 220px; }
+  select { width: 160px; }
+  textarea { width: 100%; min-height: 72px; resize: vertical; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; background: var(--bg-secondary);
+    border: 0.5px solid var(--border-md); border-radius: 20px; font-size: 13px;
+  }
+  .chip button { background: none; border: none; cursor: pointer; color: var(--text-secondary); font-size: 15px; line-height: 1; padding: 0; }
+  .chip button:hover { color: var(--text); }
+
+  .type-toggle { display: flex; gap: 8px; }
+  .type-btn {
+    padding: 7px 18px; border-radius: 20px; border: 1.5px solid var(--border-md);
+    background: none; font-family: var(--font-ui); font-size: 14px; cursor: pointer;
+    color: var(--text-secondary); transition: all 0.15s;
+  }
+  .type-btn.active-symptom { background: var(--coral-bg); border-color: var(--coral-border); color: var(--coral-text); font-weight: 500; }
+  .type-btn.active-food { background: var(--green-bg); border-color: var(--green-border); color: var(--green-text); font-weight: 500; }
+
+  .severity { display: flex; gap: 6px; }
+  .sev-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 1.5px solid var(--border-md); background: none; cursor: pointer;
+    font-size: 14px; font-weight: 500; font-family: var(--font-ui);
+    color: var(--text-secondary); transition: all 0.15s;
+  }
+  .sev-1 { background: var(--green-bg); border-color: var(--green-border); color: var(--green-text); }
+  .sev-2 { background: var(--amber-bg); border-color: var(--amber-border); color: var(--amber-text); }
+  .sev-3 { background: var(--coral-bg); border-color: var(--coral-border); color: var(--coral-text); }
+  .sev-4 { background: var(--red-bg); border-color: var(--red-border); color: var(--red-text); }
+  .sev-5 { background: var(--red-bg); border-color: var(--red-border); color: var(--red-text); font-weight: 700; }
+  .sev-label { font-size: 12px; color: var(--text-secondary); margin-top: 6px; }
+
+  .btn-primary {
+    padding: 10px 24px; background: var(--text); color: var(--bg);
+    border: none; border-radius: var(--radius-md); font-size: 14px; font-weight: 500;
+    font-family: var(--font-ui); cursor: pointer; transition: opacity 0.15s;
+  }
+  .btn-primary:hover { opacity: 0.82; }
+
+  .btn-secondary {
+    padding: 8px 18px; background: var(--bg); border: 0.5px solid var(--border-md);
+    border-radius: var(--radius-md); font-size: 13px; font-weight: 500;
+    font-family: var(--font-ui); cursor: pointer; color: var(--text); transition: background 0.12s;
+  }
+  .btn-secondary:hover { background: var(--bg-secondary); }
+  .btn-danger { color: #A32D2D !important; border-color: #A32D2D44 !important; }
+
+  .btn-google {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 18px; background: var(--bg); border: 0.5px solid var(--border-md);
+    border-radius: var(--radius-md); font-size: 14px; font-weight: 500;
+    font-family: var(--font-ui); cursor: pointer; color: var(--text); transition: background 0.12s;
+  }
+  .btn-google:hover { background: var(--bg-secondary); }
+  .btn-google svg { flex-shrink: 0; }
+
+  .add-row { display: flex; gap: 6px; align-items: center; }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  .stat-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-md); padding: 14px 16px; }
+  .stat-num { font-size: 26px; font-weight: 500; color: var(--text); line-height: 1; }
+  .stat-lbl { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+
+  .filter-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 1.25rem; }
+  .filter-btn {
+    padding: 5px 14px; font-size: 13px; font-family: var(--font-ui);
+    border: 0.5px solid var(--border-md); border-radius: 20px;
+    background: none; cursor: pointer; color: var(--text-secondary); transition: all 0.12s;
+  }
+  .filter-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+  .entries-list { display: flex; flex-direction: column; gap: 10px; }
+  .entry-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; }
+  .entry-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .entry-meta-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .entry-date { font-size: 13px; color: var(--text-secondary); }
+  .badge { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 10px; }
+  .badge-symptom { background: var(--coral-bg); color: var(--coral-text); }
+  .badge-food { background: var(--green-bg); color: var(--green-text); }
+  .entry-main { font-size: 14px; font-weight: 500; margin-bottom: 3px; }
+  .entry-note { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+  .entry-delete { background: none; border: none; cursor: pointer; color: var(--text-tertiary); font-size: 18px; line-height: 1; padding: 2px 4px; border-radius: 4px; }
+  .entry-delete:hover { color: var(--text); }
+
+  .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-secondary); font-size: 14px; }
+
+  .export-block { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
+  .export-title { font-size: 15px; font-weight: 500; margin-bottom: 5px; }
+  .export-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.6; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(8px);
+    background: var(--text); color: var(--bg);
+    padding: 10px 20px; border-radius: var(--radius-md);
+    font-size: 13px; font-family: var(--font-ui);
+    opacity: 0; transition: opacity 0.25s, transform 0.25s;
+    pointer-events: none; z-index: 999; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 540px) {
+    .content { padding: 1rem; }
+    input[type=text] { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <header>
+    <div class="header-top">
+      <h1>Health &amp; Food Tracker</h1>
+      <div class="sync-status">
+        <div class="sync-dot" id="sync-dot"></div>
+        <span id="sync-label">Not connected</span>
+      </div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('log')">Log entry</button>
+      <button class="tab" onclick="showTab('history')">History</button>
+      <button class="tab" onclick="showTab('export')">Export</button>
+      <button class="tab" onclick="showTab('settings')">Settings</button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- LOG TAB -->
+    <div id="tab-log">
+      <div id="auth-banner-log" style="display:none;">
+        <div class="auth-banner">
+          <div class="auth-banner-icon">☁️</div>
+          <div class="auth-banner-body">
+            <div class="auth-banner-title">Connect Google Drive to sync your data</div>
+            <div class="auth-banner-desc">Your entries are currently saved locally on this device only. Connect Drive to sync across all your devices and keep a permanent backup.</div>
+            <button class="btn-google" onclick="showTab('settings')">
+              <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+              Go to Settings
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section">
+          <div class="section-label">Entry type</div>
+          <div class="type-toggle">
+            <button class="type-btn active-symptom" id="btn-symptom" onclick="setType('symptom')">Symptom</button>
+            <button class="type-btn" id="btn-food" onclick="setType('food')">Food / drink</button>
+          </div>
+        </div>
+
+        <div id="form-symptom">
+          <div class="section">
+            <div class="section-label">Date &amp; time</div>
+            <div class="row">
+              <div class="field"><label>Date</label><input type="date" id="sym-date" /></div>
+              <div class="field"><label>Time (optional)</label><input type="text" id="sym-time" placeholder="e.g. 2:30 pm" style="width:140px;" /></div>
+            </div>
+          </div>
+          <div class="section">
+            <div class="section-label">Symptom(s)</div>
+            <div class="add-row">
+              <input type="text" id="sym-input" placeholder="e.g. headache, nausea" onkeydown="if(event.key==='Enter')addTag('sym')" />
+              <button class="btn-secondary" onclick="addTag('sym')">Add</button>
+            </div>
+            <div class="chips" id="sym-chips"></div>
+          </div>
+          <div class="section">
+            <div class="section-label">Severity</div>
+            <div class="severity" id="sev-btns">
+              <button class="sev-btn" onclick="setSev(1)" title="Mild">1</button>
+              <button class="sev-btn" onclick="setSev(2)" title="Noticeable">2</button>
+              <button class="sev-btn" onclick="setSev(3)" title="Moderate">3</button>
+              <button class="sev-btn" onclick="setSev(4)" title="Significant">4</button>
+              <button class="sev-btn" onclick="setSev(5)" title="Severe">5</button>
+            </div>
+            <div class="sev-label" id="sev-label">Not set</div>
+          </div>
+          <div class="section" style="margin-bottom:1.5rem;">
+            <div class="section-label">Notes (optional)</div>
+            <textarea id="sym-notes" placeholder="Trigger, duration, location, what you were doing..."></textarea>
+          </div>
+          <button class="btn-primary" onclick="saveEntry()">Save symptom</button>
+        </div>
+
+        <div id="form-food" style="display:none;">
+          <div class="section">
+            <div class="section-label">Date &amp; meal</div>
+            <div class="row">
+              <div class="field"><label>Date</label><input type="date" id="food-date" /></div>
+              <div class="field"><label>Meal type</label>
+                <select id="food-meal">
+                  <option>Breakfast</option><option>Lunch</option><option>Dinner</option>
+                  <option>Snack</option><option>Drink</option><option>Supplement</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="section">
+            <div class="section-label">Food &amp; drink items</div>
+            <div class="add-row">
+              <input type="text" id="food-input" placeholder="e.g. oatmeal, coffee, orange juice" onkeydown="if(event.key==='Enter')addTag('food')" />
+              <button class="btn-secondary" onclick="addTag('food')">Add</button>
+            </div>
+            <div class="chips" id="food-chips"></div>
+          </div>
+          <div class="section" style="margin-bottom:1.5rem;">
+            <div class="section-label">Notes (optional)</div>
+            <textarea id="food-notes" placeholder="Portion size, how you felt afterward, restaurant name..."></textarea>
+          </div>
+          <button class="btn-primary" onclick="saveEntry()">Save meal</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORY TAB -->
+    <div id="tab-history" style="display:none;">
+      <div class="stat-grid" id="stats-grid"></div>
+      <div class="filter-row">
+        <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+        <button class="filter-btn" onclick="setFilter('symptom',this)">Symptoms</button>
+        <button class="filter-btn" onclick="setFilter('food',this)">Food</button>
+        <div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
+          <input type="date" id="filter-from" style="font-size:13px;width:145px;" onchange="renderHistory()" />
+          <span style="font-size:13px;color:var(--text-secondary);">—</span>
+          <input type="date" id="filter-to" style="font-size:13px;width:145px;" onchange="renderHistory()" />
+        </div>
+      </div>
+      <div class="entries-list" id="entries-list"></div>
+    </div>
+
+    <!-- EXPORT TAB -->
+    <div id="tab-export" style="display:none;">
+      <div class="export-block">
+        <div class="export-title">Download for your doctor</div>
+        <div class="export-desc">Export your full log as a CSV (opens in Excel or Google Sheets) or as a plain text summary organized by date — great to print before an appointment.</div>
+        <div class="btn-row">
+          <button class="btn-secondary" onclick="exportCSV()">Download CSV</button>
+          <button class="btn-secondary" onclick="exportText()">Download plain text</button>
+        </div>
+      </div>
+      <div class="export-block">
+        <div class="export-title">Copy as text</div>
+        <div class="export-desc">Copy your full log to the clipboard and paste it directly into a patient portal, email, or notes app.</div>
+        <button class="btn-secondary" onclick="copyText()">Copy to clipboard</button>
+      </div>
+      <div class="export-block">
+        <div class="export-title">Data summary</div>
+        <div class="export-desc" id="data-summary">—</div>
+      </div>
+    </div>
+
+    <!-- SETTINGS TAB -->
+    <div id="tab-settings" style="display:none;">
+      <div class="setup-panel" id="setup-panel">
+        <div class="setup-title">Connect Google Drive</div>
+        <div class="setup-desc">Follow these steps once to enable Drive sync. Your data will be saved to a file called <strong>health-tracker-data.json</strong> in your Drive — readable from any device.</div>
+
+        <div class="setup-step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-label">Open Google Cloud Console</div>
+            <div class="step-detail">Go to <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a> and sign in with your Google account.</div>
+          </div>
+        </div>
+
+        <div class="setup-step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-label">Create a new project</div>
+            <div class="step-detail">Click the project dropdown at the top → <strong>New Project</strong> → name it anything (e.g. "Health Tracker") → click <strong>Create</strong>. Make sure it's selected.</div>
+          </div>
+        </div>
+
+        <div class="setup-step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-label">Enable the Google Drive API</div>
+            <div class="step-detail">In the left menu go to <strong>APIs &amp; Services → Library</strong>. Search for "Google Drive API" → click it → click <strong>Enable</strong>.</div>
+          </div>
+        </div>
+
+        <div class="setup-step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-label">Configure the OAuth consent screen</div>
+            <div class="step-detail">Go to <strong>APIs &amp; Services → OAuth consent screen</strong>. Choose <strong>External</strong> → Fill in App name (e.g. "Health Tracker") and your email for both fields → Save and continue through the remaining steps (you can skip optional fields). On the last screen click <strong>Back to Dashboard</strong>.</div>
+          </div>
+        </div>
+
+        <div class="setup-step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <div class="step-label">Create an OAuth Client ID</div>
+            <div class="step-detail">Go to <strong>APIs &amp; Services → Credentials</strong> → click <strong>+ Create Credentials → OAuth client ID</strong>. Set Application type to <strong>Web application</strong>. Under <strong>Authorised JavaScript origins</strong>, click <strong>+ Add URI</strong> and paste in the full URL of this file as you're opening it (e.g. <code>file:///Users/you/health-tracker.html</code> or your Drive preview URL). Click <strong>Create</strong>.</div>
+          </div>
+        </div>
+
+        <div class="setup-step">
+          <div class="step-num">6</div>
+          <div class="step-body">
+            <div class="step-label">Copy your Client ID and paste it below</div>
+            <div class="step-detail">A dialog will show your Client ID — it ends in <code>.apps.googleusercontent.com</code>. Copy it and paste here:</div>
+            <div class="client-id-row">
+              <input type="text" id="client-id-input" placeholder="Paste your Client ID here…" style="width:100%;" />
+              <button class="btn-primary" onclick="saveClientId()">Save</button>
+            </div>
+            <div style="margin-top:12px;">
+              <button class="btn-google" id="signin-btn" onclick="connectDrive()" style="display:none;">
+                <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                Sign in with Google
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="drive-account-card" style="display:none;">
+        <div class="section-label">Google Drive</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:14px;font-weight:500;" id="drive-user-name">Connected</div>
+            <div style="font-size:13px;color:var(--text-secondary);margin-top:2px;" id="drive-user-email"></div>
+          </div>
+          <button class="btn-secondary btn-danger" onclick="disconnectDrive()">Disconnect</button>
+        </div>
+        <div style="margin-top:14px;padding-top:14px;border-top:0.5px solid var(--border);">
+          <div style="font-size:13px;color:var(--text-secondary);">Saves to: <strong style="color:var(--text);">health-tracker-data.json</strong> in your Google Drive root</div>
+          <div style="font-size:13px;color:var(--text-secondary);margin-top:4px;" id="last-synced">Last synced: never</div>
+        </div>
+        <div style="margin-top:14px;">
+          <button class="btn-secondary" onclick="forcSync()">Sync now</button>
+        </div>
+      </div>
+
+      <div class="export-block" style="margin-top:1rem;">
+        <div class="export-title">Clear all data</div>
+        <div class="export-desc">Permanently delete all entries from this device and Drive. Export a backup first if needed.</div>
+        <button class="btn-secondary btn-danger" onclick="clearAll()">Clear all entries</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async></script>
+
+<script>
+/* ── State ──────────────────────────────────────────── */
+var entries = [];
+var currentType = 'symptom';
+var currentSev = 0;
+var symTags = [];
+var foodTags = [];
+var histFilter = 'all';
+
+var STORAGE_KEY = 'health-tracker-entries-v1';
+var CLIENT_ID_KEY = 'health-tracker-client-id';
+var DRIVE_FILE_KEY = 'health-tracker-drive-file-id';
+
+var driveFileId = null;
+var accessToken = null;
+var tokenClient = null;
+var lastSynced = null;
+
+/* ── Init ───────────────────────────────────────────── */
+function init() {
+  loadLocal();
+  setTodayDates();
+  var savedId = localStorage.getItem(CLIENT_ID_KEY);
+  document.getElementById('setup-panel').style.display = 'block';
+  if (savedId) {
+    document.getElementById('client-id-input').value = savedId;
+    document.getElementById('signin-btn').style.display = 'inline-flex';
+    initGoogleAuth(savedId);
+  } else {
+    setSyncStatus('disconnected');
+    document.getElementById('auth-banner-log').style.display = 'block';
+  }
+}
+
+function loadLocal() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) entries = JSON.parse(raw);
+  } catch(e) { entries = []; }
+}
+
+function saveLocal() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); } catch(e) {}
+}
+
+function setTodayDates() {
+  var today = new Date().toISOString().split('T')[0];
+  document.getElementById('sym-date').value = today;
+  document.getElementById('food-date').value = today;
+}
+
+/* ── Google Auth ────────────────────────────────────── */
+function saveClientId() {
+  var id = document.getElementById('client-id-input').value.trim();
+  if (!id || !id.includes('googleusercontent.com')) {
+    toast('Please paste a valid Client ID ending in .apps.googleusercontent.com');
+    return;
+  }
+  localStorage.setItem(CLIENT_ID_KEY, id);
+  initGoogleAuth(id);
+  document.getElementById('signin-btn').style.display = 'inline-flex';
+  toast('Client ID saved — now click Sign in with Google');
+}
+
+function initGoogleAuth(clientId) {
+  function tryInit() {
+    if (typeof google === 'undefined' || !google.accounts) {
+      setTimeout(tryInit, 300);
+      return;
+    }
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+      callback: onTokenReceived
+    });
+    setSyncStatus('disconnected');
+    document.getElementById('auth-banner-log').style.display = 'block';
+  }
+  tryInit();
+}
+
+function connectDrive() {
+  if (!tokenClient) {
+    toast('Google Auth not ready — check your Client ID in Settings');
+    return;
+  }
+  tokenClient.requestAccessToken();
+}
+
+function onTokenReceived(resp) {
+  if (resp.error) {
+    setSyncStatus('error');
+    toast('Auth error: ' + resp.error);
+    return;
+  }
+  accessToken = resp.access_token;
+  fetchUserInfo();
+  driveFileId = localStorage.getItem(DRIVE_FILE_KEY) || null;
+  loadFromDrive();
+}
+
+function fetchUserInfo() {
+  fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+    headers: { 'Authorization': 'Bearer ' + accessToken }
+  }).then(function(r){ return r.json(); }).then(function(info) {
+    document.getElementById('drive-account-card').style.display = 'block';
+    document.getElementById('drive-user-name').textContent = info.name || 'Connected';
+    document.getElementById('drive-user-email').textContent = info.email || '';
+    document.getElementById('auth-banner-log').style.display = 'none';
+    setSyncStatus('connected');
+  }).catch(function(){});
+}
+
+function disconnectDrive() {
+  if (!confirm('Disconnect Google Drive? Your local data stays intact.')) return;
+  accessToken = null;
+  driveFileId = null;
+  localStorage.removeItem(CLIENT_ID_KEY);
+  localStorage.removeItem(DRIVE_FILE_KEY);
+  document.getElementById('drive-account-card').style.display = 'none';
+  document.getElementById('setup-panel').style.display = 'block';
+  document.getElementById('client-id-input').value = '';
+  document.getElementById('auth-banner-log').style.display = 'block';
+  setSyncStatus('disconnected');
+  toast('Disconnected from Google Drive');
+}
+
+/* ── Drive I/O ──────────────────────────────────────── */
+function loadFromDrive() {
+  setSyncStatus('syncing');
+  if (driveFileId) {
+    fetchDriveFile(driveFileId);
+  } else {
+    findOrCreateFile();
+  }
+}
+
+function findOrCreateFile() {
+  fetch("https://www.googleapis.com/drive/v3/files?q=name%3D'health-tracker-data.json'+and+trashed%3Dfalse&fields=files(id,name)", {
+    headers: { 'Authorization': 'Bearer ' + accessToken }
+  }).then(function(r){ return r.json(); }).then(function(data) {
+    if (data.files && data.files.length > 0) {
+      driveFileId = data.files[0].id;
+      localStorage.setItem(DRIVE_FILE_KEY, driveFileId);
+      fetchDriveFile(driveFileId);
+    } else {
+      createDriveFile();
+    }
+  }).catch(function(e) {
+    setSyncStatus('error');
+    toast('Could not access Drive — check your connection');
+  });
+}
+
+function fetchDriveFile(fileId) {
+  fetch('https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media', {
+    headers: { 'Authorization': 'Bearer ' + accessToken }
+  }).then(function(r) {
+    if (!r.ok) throw new Error('file not found');
+    return r.json();
+  }).then(function(data) {
+    if (data && Array.isArray(data.entries)) {
+      var driveEntries = data.entries;
+      var merged = mergeEntries(entries, driveEntries);
+      entries = merged;
+      saveLocal();
+    }
+    setSyncStatus('connected');
+    setLastSynced();
+    renderHistory();
+    toast('Synced with Google Drive');
+  }).catch(function() {
+    driveFileId = null;
+    localStorage.removeItem(DRIVE_FILE_KEY);
+    createDriveFile();
+  });
+}
+
+function createDriveFile() {
+  var meta = JSON.stringify({ name: 'health-tracker-data.json', mimeType: 'application/json' });
+  var body = JSON.stringify({ entries: entries });
+  var boundary = '-------314159265358979323846';
+  var multipart = '--' + boundary + '\r\nContent-Type: application/json\r\n\r\n' +
+    meta + '\r\n--' + boundary + '\r\nContent-Type: application/json\r\n\r\n' +
+    body + '\r\n--' + boundary + '--';
+
+  fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + accessToken,
+      'Content-Type': 'multipart/related; boundary="' + boundary + '"'
+    },
+    body: multipart
+  }).then(function(r){ return r.json(); }).then(function(data) {
+    driveFileId = data.id;
+    localStorage.setItem(DRIVE_FILE_KEY, driveFileId);
+    setSyncStatus('connected');
+    setLastSynced();
+    toast('Drive file created and synced');
+  }).catch(function() {
+    setSyncStatus('error');
+    toast('Could not create Drive file');
+  });
+}
+
+function saveToDrive() {
+  if (!accessToken || !driveFileId) return;
+  setSyncStatus('syncing');
+  var body = JSON.stringify({ entries: entries, lastUpdated: new Date().toISOString() });
+  fetch('https://www.googleapis.com/upload/drive/v3/files/' + driveFileId + '?uploadType=media', {
+    method: 'PATCH',
+    headers: {
+      'Authorization': 'Bearer ' + accessToken,
+      'Content-Type': 'application/json'
+    },
+    body: body
+  }).then(function(r) {
+    if (!r.ok) throw new Error('upload failed');
+    setSyncStatus('connected');
+    setLastSynced();
+  }).catch(function() {
+    setSyncStatus('error');
+    toast('Drive sync failed — data saved locally');
+  });
+}
+
+function forcSync() {
+  if (!accessToken) { connectDrive(); return; }
+  loadFromDrive();
+}
+
+function mergeEntries(local, remote) {
+  var map = {};
+  local.forEach(function(e){ map[e.id] = e; });
+  remote.forEach(function(e){ if (!map[e.id]) map[e.id] = e; });
+  return Object.values(map).sort(function(a,b){ return b.date.localeCompare(a.date)||b.id-a.id; });
+}
+
+/* ── UI helpers ─────────────────────────────────────── */
+function setSyncStatus(state) {
+  var dot = document.getElementById('sync-dot');
+  var lbl = document.getElementById('sync-label');
+  dot.className = 'sync-dot';
+  if (state === 'connected') { dot.classList.add('connected'); lbl.textContent = 'Drive synced'; }
+  else if (state === 'syncing') { dot.classList.add('syncing'); lbl.textContent = 'Syncing…'; }
+  else if (state === 'error') { dot.classList.add('error'); lbl.textContent = 'Sync error'; }
+  else { lbl.textContent = 'Not connected'; }
+}
+
+function setLastSynced() {
+  lastSynced = new Date();
+  var el = document.getElementById('last-synced');
+  if (el) el.textContent = 'Last synced: ' + lastSynced.toLocaleTimeString();
+}
+
+function showTab(t) {
+  ['log','history','export','settings'].forEach(function(id) {
+    document.getElementById('tab-'+id).style.display = id===t?'block':'none';
+  });
+  document.querySelectorAll('.tab').forEach(function(btn,i){
+    btn.classList.toggle('active', ['log','history','export','settings'][i]===t);
+  });
+  if (t==='history') renderHistory();
+  if (t==='export') renderExportSummary();
+}
+
+function setType(t) {
+  currentType = t;
+  document.getElementById('form-symptom').style.display = t==='symptom'?'block':'none';
+  document.getElementById('form-food').style.display = t==='food'?'block':'none';
+  document.getElementById('btn-symptom').className = 'type-btn'+(t==='symptom'?' active-symptom':'');
+  document.getElementById('btn-food').className = 'type-btn'+(t==='food'?' active-food':'');
+}
+
+function addTag(type) {
+  var inputId = type==='sym'?'sym-input':'food-input';
+  var chipsId = type==='sym'?'sym-chips':'food-chips';
+  var arr = type==='sym'?symTags:foodTags;
+  var val = document.getElementById(inputId).value.trim();
+  if (!val) return;
+  arr.push(val);
+  document.getElementById(inputId).value = '';
+  renderChips(chipsId, arr);
+}
+
+function renderChips(containerId, arr) {
+  document.getElementById(containerId).innerHTML = arr.map(function(c,i){
+    return '<span class="chip">'+escHtml(c)+'<button onclick="removeTag(\''+containerId+'\','+i+')">×</button></span>';
+  }).join('');
+}
+
+function removeTag(containerId, i) {
+  if (containerId==='sym-chips'){symTags.splice(i,1);renderChips('sym-chips',symTags);}
+  else{foodTags.splice(i,1);renderChips('food-chips',foodTags);}
+}
+
+var sevLabels = ['','Mild (1)','Noticeable (2)','Moderate (3)','Significant (4)','Severe (5)'];
+function setSev(n) {
+  currentSev = n;
+  document.querySelectorAll('#sev-btns .sev-btn').forEach(function(b,i){
+    b.className='sev-btn'+(i+1===n?' sev-'+n:'');
+  });
+  document.getElementById('sev-label').textContent = sevLabels[n];
+}
+
+function saveEntry() {
+  var now = Date.now();
+  if (currentType==='symptom') {
+    if (!symTags.length){toast('Add at least one symptom');return;}
+    entries.push({id:now,type:'symptom',date:document.getElementById('sym-date').value,
+      time:document.getElementById('sym-time').value.trim(),items:symTags.slice(),
+      severity:currentSev,notes:document.getElementById('sym-notes').value.trim()});
+    symTags=[];renderChips('sym-chips',symTags);
+    document.getElementById('sym-time').value='';
+    document.getElementById('sym-notes').value='';
+    currentSev=0;
+    document.querySelectorAll('#sev-btns .sev-btn').forEach(function(b){b.className='sev-btn';});
+    document.getElementById('sev-label').textContent='Not set';
+  } else {
+    if (!foodTags.length){toast('Add at least one food item');return;}
+    entries.push({id:now,type:'food',date:document.getElementById('food-date').value,
+      meal:document.getElementById('food-meal').value,items:foodTags.slice(),
+      notes:document.getElementById('food-notes').value.trim()});
+    foodTags=[];renderChips('food-chips',foodTags);
+    document.getElementById('food-notes').value='';
+  }
+  entries.sort(function(a,b){return b.date.localeCompare(a.date)||b.id-a.id;});
+  saveLocal();
+  saveToDrive();
+  toast('Entry saved'+(accessToken?' & synced':''));
+}
+
+function setFilter(f,btn) {
+  histFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  renderHistory();
+}
+
+function renderHistory() {
+  var from=document.getElementById('filter-from')?document.getElementById('filter-from').value:'';
+  var to=document.getElementById('filter-to')?document.getElementById('filter-to').value:'';
+  var filtered=entries.filter(function(e){
+    if(histFilter!=='all'&&e.type!==histFilter)return false;
+    if(from&&e.date<from)return false;
+    if(to&&e.date>to)return false;
+    return true;
+  }).sort(function(a,b){return b.date.localeCompare(a.date)||b.id-a.id;});
+
+  var syms=entries.filter(function(e){return e.type==='symptom';});
+  var foods=entries.filter(function(e){return e.type==='food';});
+  var sevE=syms.filter(function(e){return e.severity>0;});
+  var avgSev=sevE.length?(sevE.reduce(function(s,e){return s+e.severity;},0)/sevE.length).toFixed(1):'—';
+
+  document.getElementById('stats-grid').innerHTML=
+    stat(entries.length,'Total entries')+stat(syms.length,'Symptoms')+
+    stat(foods.length,'Meals')+stat(avgSev,'Avg severity');
+
+  var el=document.getElementById('entries-list');
+  if(!filtered.length){el.innerHTML='<div class="empty-state">No entries found.<br>Start logging on the Log entry tab.</div>';return;}
+  el.innerHTML=filtered.map(function(e){
+    var meta=e.type==='symptom'?(e.time?' · '+e.time:'')+(e.severity?' · Severity '+e.severity+'/5':''):' · '+(e.meal||'');
+    return '<div class="entry-card"><div class="entry-header"><div class="entry-meta-row">'+
+      '<span class="entry-date">'+fmtDate(e.date)+escHtml(meta)+'</span>'+
+      '<span class="badge badge-'+e.type+'">'+(e.type==='symptom'?'Symptom':'Food')+'</span>'+
+      '</div><button class="entry-delete" onclick="deleteEntry('+e.id+')">×</button></div>'+
+      '<div class="entry-main">'+escHtml(e.items.join(', '))+'</div>'+
+      (e.notes?'<div class="entry-note">'+escHtml(e.notes)+'</div>':'')+
+      '</div>';
+  }).join('');
+}
+
+function stat(n,label){
+  return '<div class="stat-card"><div class="stat-num">'+n+'</div><div class="stat-lbl">'+label+'</div></div>';
+}
+
+function deleteEntry(id) {
+  if (!confirm('Delete this entry?')) return;
+  entries=entries.filter(function(e){return e.id!==id;});
+  saveLocal();saveToDrive();renderHistory();
+}
+
+function renderExportSummary() {
+  var syms=entries.filter(function(e){return e.type==='symptom';});
+  var foods=entries.filter(function(e){return e.type==='food';});
+  var dates=entries.map(function(e){return e.date;}).sort();
+  var range=dates.length?fmtDate(dates[0])+' – '+fmtDate(dates[dates.length-1]):'No entries yet';
+  document.getElementById('data-summary').textContent=
+    entries.length+' total entries ('+syms.length+' symptoms, '+foods.length+' meals). Date range: '+range+'.';
+}
+
+function buildText() {
+  if(!entries.length)return 'No entries logged yet.';
+  var sorted=entries.slice().sort(function(a,b){return a.date.localeCompare(b.date)||a.id-b.id;});
+  var lines=['HEALTH & FOOD LOG','Generated: '+new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}),'─────────────────────────────────',''];
+  var lastDate='';
+  sorted.forEach(function(e){
+    if(e.date!==lastDate){if(lastDate)lines.push('');lines.push('▸ '+fmtDate(e.date));lines.push('');lastDate=e.date;}
+    if(e.type==='symptom'){
+      lines.push('  [SYMPTOM] '+e.items.join(', ')+(e.time?'  at '+e.time:'')+(e.severity?'  — Severity '+e.severity+'/5':''));
+    } else {
+      lines.push('  ['+(e.meal||'FOOD').toUpperCase()+'] '+e.items.join(', '));
+    }
+    if(e.notes)lines.push('    Notes: '+e.notes);
+  });
+  return lines.join('\n');
+}
+
+function exportCSV() {
+  var rows=[['Date','Time','Meal','Type','Items','Severity','Notes']];
+  entries.slice().sort(function(a,b){return a.date.localeCompare(b.date)||a.id-b.id;}).forEach(function(e){
+    rows.push([e.date,e.time||'',e.meal||'',e.type,e.items.join('; '),e.severity||'',(e.notes||'').replace(/"/g,'""')]);
+  });
+  var csv=rows.map(function(r){return r.map(function(c){return '"'+c+'"';}).join(',');}).join('\n');
+  download('health-log-'+new Date().toISOString().split('T')[0]+'.csv',csv,'text/csv');
+}
+
+function exportText(){download('health-log-'+new Date().toISOString().split('T')[0]+'.txt',buildText(),'text/plain');}
+
+function copyText() {
+  var txt=buildText();
+  if(navigator.clipboard){navigator.clipboard.writeText(txt).then(function(){toast('Copied to clipboard');}).catch(function(){fallbackCopy(txt);});}
+  else{fallbackCopy(txt);}
+}
+
+function fallbackCopy(txt) {
+  var ta=document.createElement('textarea');ta.value=txt;ta.style.cssText='position:fixed;opacity:0;';
+  document.body.appendChild(ta);ta.focus();ta.select();
+  try{document.execCommand('copy');toast('Copied to clipboard');}catch(e){toast('Use Download instead');}
+  document.body.removeChild(ta);
+}
+
+function download(filename,content,type) {
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type:type}));
+  a.download=filename;document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+function clearAll() {
+  if(!confirm('Delete ALL entries permanently? This cannot be undone.\n\nExport a backup first if needed.'))return;
+  entries=[];saveLocal();
+  if(accessToken&&driveFileId)saveToDrive();
+  renderHistory();toast('All entries cleared');
+}
+
+function fmtDate(d) {
+  if(!d)return'';
+  return new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toast(msg) {
+  var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('show');},2400);
+}
+
+init();
+</script>
+</body>
+</html>
