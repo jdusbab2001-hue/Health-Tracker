@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Health &amp; Food Tracker</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#ffffff;--bg-secondary:#f5f4f1;--bg-tertiary:#eeecea;
+  --text:#1a1a18;--text-secondary:#6b6b67;--text-tertiary:#9e9e99;
+  --border:rgba(0,0,0,0.12);--border-md:rgba(0,0,0,0.22);
+  --radius-md:8px;--radius-lg:12px;
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  --green-bg:#EAF3DE;--green-text:#3B6D11;--green-border:#639922;
+  --amber-bg:#FAEEDA;--amber-text:#854F0B;--amber-border:#BA7517;
+  --coral-bg:#FAECE7;--coral-text:#993C1D;--coral-border:#D85A30;
+  --red-bg:#F7C1C1;--red-text:#791F1F;--red-border:#A32D2D;
+  --blue-bg:#E6F1FB;--blue-text:#185FA5;--blue-border:#378ADD;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#1c1c1a;--bg-secondary:#242422;--bg-tertiary:#2c2c2a;
+    --text:#f0ede8;--text-secondary:#9e9e99;--text-tertiary:#6b6b67;
+    --border:rgba(255,255,255,0.10);--border-md:rgba(255,255,255,0.20);
+    --green-bg:#173404;--green-text:#C0DD97;--green-border:#3B6D11;
+    --amber-bg:#412402;--amber-text:#FAC775;--amber-border:#854F0B;
+    --coral-bg:#4A1B0C;--coral-text:#F5C4B3;--coral-border:#993C1D;
+    --red-bg:#501313;--red-text:#F7C1C1;--red-border:#791F1F;
+    --blue-bg:#042C53;--blue-text:#B5D4F4;--blue-border:#185FA5;
+  }
+}
+body{font-family:var(--font);background:var(--bg-tertiary);color:var(--text);min-height:100vh;}
+.app-shell{max-width:820px;margin:0 auto;padding:0 0 4rem;}
+header{background:var(--bg);border-bottom:0.5px solid var(--border);padding:1.25rem 1.5rem 0;position:sticky;top:0;z-index:10;}
+.header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px;}
+h1{font-size:17px;font-weight:600;}
+.sync-status{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-secondary);}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--text-tertiary);flex-shrink:0;transition:background 0.3s;}
+.sync-dot.connected{background:#639922;}
+.sync-dot.syncing{background:#BA7517;animation:pulse 1s infinite;}
+.sync-dot.error{background:#A32D2D;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.tabs{display:flex;}
+.tab{padding:8px 18px;font-size:14px;font-family:var(--font);cursor:pointer;border:none;background:none;color:var(--text-secondary);border-bottom:2px solid transparent;margin-bottom:-1px;}
+.tab.active{color:var(--text);border-bottom-color:var(--text);font-weight:500;}
+.content{padding:1.5rem;}
+.card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem 1.5rem;margin-bottom:1rem;}
+.section-label{font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:10px;}
+.section{margin-bottom:1.25rem;}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;}
+.field{display:flex;flex-direction:column;gap:4px;}
+.field label{font-size:12px;color:var(--text-secondary);}
+input[type=date],input[type=text],select,textarea{
+  font-family:var(--font);font-size:14px;background:var(--bg-secondary);color:var(--text);
+  border:0.5px solid var(--border-md);border-radius:var(--radius-md);padding:8px 10px;outline:none;
+}
+input[type=date]{width:160px;}
+input[type=text]{width:220px;}
+select{width:160px;}
+textarea{width:100%;min-height:72px;resize:vertical;}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:var(--bg-secondary);border:0.5px solid var(--border-md);border-radius:20px;font-size:13px;}
+.chip button{background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:15px;line-height:1;padding:0;}
+.type-toggle{display:flex;gap:8px;flex-wrap:wrap;}
+.type-btn{padding:7px 18px;border-radius:20px;border:1.5px solid var(--border-md);background:none;font-family:var(--font);font-size:14px;cursor:pointer;color:var(--text-secondary);}
+.type-btn.active-symptom{background:var(--coral-bg);border-color:var(--coral-border);color:var(--coral-text);font-weight:500;}
+.type-btn.active-food{background:var(--green-bg);border-color:var(--green-border);color:var(--green-text);font-weight:500;}
+.type-btn.active-workout{background:var(--blue-bg);border-color:var(--blue-border);color:var(--blue-text);font-weight:500;}
+.severity{display:flex;gap:6px;}
+.sev-btn{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border-md);background:none;cursor:pointer;font-size:14px;font-weight:500;font-family:var(--font);color:var(--text-secondary);}
+.sev-1{background:var(--green-bg);border-color:var(--green-border);color:var(--green-text);}
+.sev-2{background:var(--amber-bg);border-color:var(--amber-border);color:var(--amber-text);}
+.sev-3{background:var(--coral-bg);border-color:var(--coral-border);color:var(--coral-text);}
+.sev-4{background:var(--red-bg);border-color:var(--red-border);color:var(--red-text);}
+.sev-5{background:var(--red-bg);border-color:var(--red-border);color:var(--red-text);font-weight:700;}
+.sev-label{font-size:12px;color:var(--text-secondary);margin-top:6px;}
+.btn-primary{padding:10px 24px;background:var(--text);color:var(--bg);border:none;border-radius:var(--radius-md);font-size:14px;font-weight:500;font-family:var(--font);cursor:pointer;}
+.btn-primary:hover{opacity:0.82;}
+.btn-secondary{padding:8px 18px;background:var(--bg);border:0.5px solid var(--border-md);border-radius:var(--radius-md);font-size:13px;font-weight:500;font-family:var(--font);cursor:pointer;color:var(--text);}
+.btn-secondary:hover{background:var(--bg-secondary);}
+.btn-danger{color:#A32D2D !important;border-color:#A32D2D44 !important;}
+.btn-google{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;background:var(--bg);border:0.5px solid var(--border-md);border-radius:var(--radius-md);font-size:14px;font-weight:500;font-family:var(--font);cursor:pointer;color:var(--text);}
+.add-row{display:flex;gap:6px;align-items:center;}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:1.5rem;}
+.stat-card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-md);padding:14px 16px;}
+.stat-num{font-size:26px;font-weight:500;line-height:1;}
+.stat-lbl{font-size:12px;color:var(--text-secondary);margin-top:4px;}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:1.25rem;}
+.filter-btn{padding:5px 14px;font-size:13px;font-family:var(--font);border:0.5px solid var(--border-md);border-radius:20px;background:none;cursor:pointer;color:var(--text-secondary);}
+.filter-btn.active{background:var(--text);color:var(--bg);border-color:var(--text);}
+.entries-list{display:flex;flex-direction:column;gap:10px;}
+.entry-card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;}
+.entry-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.entry-meta-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.entry-date{font-size:13px;color:var(--text-secondary);}
+.badge{font-size:11px;font-weight:500;padding:2px 8px;border-radius:10px;}
+.badge-symptom{background:var(--coral-bg);color:var(--coral-text);}
+.badge-food{background:var(--green-bg);color:var(--green-text);}
+.badge-workout{background:var(--blue-bg);color:var(--blue-text);}
+.entry-main{font-size:14px;font-weight:500;margin-bottom:3px;}
+.entry-note{font-size:13px;color:var(--text-secondary);margin-top:4px;}
+.entry-delete{background:none;border:none;cursor:pointer;color:var(--text-tertiary);font-size:18px;line-height:1;padding:2px 4px;}
+.entry-delete:hover{color:var(--text);}
+.empty-state{text-align:center;padding:3rem 1rem;color:var(--text-secondary);font-size:14px;}
+.export-block{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem 1.5rem;margin-bottom:1rem;}
+.export-title{font-size:15px;font-weight:500;margin-bottom:5px;}
+.export-desc{font-size:13px;color:var(--text-secondary);margin-bottom:14px;line-height:1.6;}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;}
+.setup-panel{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem;margin-bottom:1.25rem;}
+.setup-title{font-size:15px;font-weight:500;margin-bottom:4px;}
+.setup-desc{font-size:13px;color:var(--text-secondary);margin-bottom:1.25rem;line-height:1.6;}
+.setup-step{display:flex;gap:12px;margin-bottom:16px;}
+.step-num{width:24px;height:24px;border-radius:50%;background:var(--bg-secondary);border:0.5px solid var(--border-md);font-size:12px;font-weight:600;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.step-label{font-size:14px;font-weight:500;margin-bottom:3px;}
+.step-detail{font-size:13px;color:var(--text-secondary);line-height:1.55;}
+.step-detail a{color:var(--blue-text);}
+.client-id-row{display:flex;gap:8px;margin-top:8px;}
+.client-id-row input{flex:1;font-size:13px;}
+.auth-banner{background:var(--blue-bg);border:0.5px solid var(--blue-border);border-radius:var(--radius-lg);padding:1.25rem 1.5rem;margin-bottom:1.25rem;display:flex;gap:14px;}
+.auth-banner-title{font-size:14px;font-weight:500;color:var(--blue-text);margin-bottom:4px;}
+.auth-banner-desc{font-size:13px;color:var(--blue-text);opacity:0.85;margin-bottom:12px;line-height:1.5;}
+.readiness-btns{display:flex;gap:10px;flex-wrap:wrap;}
+.readiness-btn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:14px 20px;border:1.5px solid var(--border-md);border-radius:var(--radius-lg);background:none;cursor:pointer;font-family:var(--font);font-size:14px;color:var(--text);min-width:110px;}
+.readiness-btn:hover{background:var(--bg-secondary);}
+.readiness-btn.rg{background:var(--green-bg);border-color:var(--green-border);}
+.readiness-btn.ry{background:var(--amber-bg);border-color:var(--amber-border);}
+.readiness-btn.rr{background:var(--coral-bg);border-color:var(--coral-border);}
+.ex-header{display:grid;grid-template-columns:1fr 80px 60px 60px 100px 32px;gap:6px;margin-bottom:4px;}
+.ex-header span{font-size:11px;color:var(--text-secondary);font-weight:500;}
+.ex-row{display:grid;grid-template-columns:1fr 80px 60px 60px 100px 32px;gap:6px;margin-bottom:6px;align-items:center;}
+.ex-row input{font-size:13px;padding:6px 8px;width:100%;}
+.two-rep{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-secondary);}
+.week-btns{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:1rem;}
+.week-btn{width:28px;height:28px;border-radius:50%;border:0.5px solid var(--border-md);background:none;font-size:11px;cursor:pointer;color:var(--text-secondary);font-family:var(--font);}
+.week-btn.active{background:var(--text);color:var(--bg);border-color:var(--text);}
+.week-btn.has-data{border-color:var(--green-border);color:var(--green-text);}
+.toggle-switch{position:relative;display:inline-block;width:42px;height:24px;cursor:pointer;}
+.toggle-switch input{opacity:0;width:0;height:0;}
+.toggle-track{position:absolute;inset:0;background:var(--bg-tertiary);border:0.5px solid var(--border-md);border-radius:24px;}
+.toggle-track::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--text-secondary);transition:transform 0.2s,background 0.2s;}
+.toggle-switch input:checked + .toggle-track{background:var(--green-bg);border-color:var(--green-border);}
+.toggle-switch input:checked + .toggle-track::after{transform:translateX(18px);background:var(--green-text);}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--text);color:var(--bg);padding:10px 20px;border-radius:var(--radius-md);font-size:13px;opacity:0;transition:opacity 0.25s,transform 0.25s;pointer-events:none;z-index:999;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div class="app-shell">
+<header>
+  <div class="header-top">
+    <h1>Health &amp; Food Tracker</h1>
+    <div class="sync-status"><div class="sync-dot" id="sync-dot"></div><span id="sync-label">Not connected</span></div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('log')">Log entry</button>
+    <button class="tab" onclick="showTab('history')">History</button>
+    <button class="tab" onclick="showTab('export')">Export</button>
+    <button class="tab" onclick="showTab('settings')">Settings</button>
+  </div>
+</header>
+<div class="content">
+
+<div id="tab-log">
+  <div id="auth-banner-log" style="display:none;">
+    <div class="auth-banner">
+      <div style="font-size:22px;">&#9729;&#65039;</div>
+      <div>
+        <div class="auth-banner-title">Connect Google Drive to sync your data</div>
+        <div class="auth-banner-desc">Entries are currently saved locally only.</div>
+        <button class="btn-google" onclick="showTab('settings')">Go to Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section">
+      <div class="section-label">Entry type</div>
+      <div class="type-toggle">
+        <button class="type-btn active-symptom" id="btn-symptom" onclick="setType('symptom')">Symptom</button>
+        <button class="type-btn" id="btn-food" onclick="setType('food')">Food / drink</button>
+        <button class="type-btn" id="btn-workout" onclick="setType('workout')">Workout</button>
+      </div>
+    </div>
+
+    <!-- SYMPTOM FORM -->
+    <div id="form-symptom">
+      <div class="section">
+        <div class="section-label">Date &amp; time</div>
+        <div class="row">
+          <div class="field"><label>Date</label><input type="date" id="sym-date" /></div>
+          <div class="field"><label>Time (optional)</label><input type="text" id="sym-time" placeholder="e.g. 2:30 pm" style="width:140px;" /></div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-label">Symptom(s)</div>
+        <div class="add-row">
+          <input type="text" id="sym-input" placeholder="e.g. headache, nausea" onkeydown="if(event.key==='Enter')addTag('sym')" />
+          <button class="btn-secondary" onclick="addTag('sym')">Add</button>
+        </div>
+        <div class="chips" id="sym-chips"></div>
+      </div>
+      <div class="section">
+        <div class="section-label">Severity</div>
+        <div class="severity" id="sev-btns">
+          <button class="sev-btn" onclick="setSev(1)">1</button>
+          <button class="sev-btn" onclick="setSev(2)">2</button>
+          <button class="sev-btn" onclick="setSev(3)">3</button>
+          <button class="sev-btn" onclick="setSev(4)">4</button>
+          <button class="sev-btn" onclick="setSev(5)">5</button>
+        </div>
+        <div class="sev-label" id="sev-label">Not set</div>
+      </div>
+      <div class="section" style="margin-bottom:1.5rem;">
+        <div class="section-label">Notes (optional)</div>
+        <textarea id="sym-notes" placeholder="Trigger, duration, location..."></textarea>
+      </div>
+      <button class="btn-primary" onclick="saveEntry()">Save symptom</button>
+    </div>
+
+    <!-- FOOD FORM -->
+    <div id="form-food" style="display:none;">
+      <div class="section">
+        <div class="section-label">Date &amp; meal</div>
+        <div class="row">
+          <div class="field"><label>Date</label><input type="date" id="food-date" /></div>
+          <div class="field"><label>Meal type</label>
+            <select id="food-meal">
+              <option>Breakfast</option><option>Lunch</option><option>Dinner</option>
+              <option>Snack</option><option>Drink</option><option>Supplement</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-label">Food &amp; drink items</div>
+        <div class="add-row">
+          <input type="text" id="food-input" placeholder="e.g. oatmeal, coffee" onkeydown="if(event.key==='Enter')addTag('food')" />
+          <button class="btn-secondary" onclick="addTag('food')">Add</button>
+        </div>
+        <div class="chips" id="food-chips"></div>
+      </div>
+      <div class="section" style="margin-bottom:1.5rem;">
+        <div class="section-label">Notes (optional)</div>
+        <textarea id="food-notes" placeholder="Portion size, how you felt afterward..."></textarea>
+      </div>
+      <button class="btn-primary" onclick="saveEntry()">Save meal</button>
+    </div>
+
+    <!-- WORKOUT FORM -->
+    <div id="form-workout" style="display:none;">
+
+      <!-- Vertigo chart -->
+      <div style="background:var(--bg-secondary);border-radius:var(--radius-md);padding:14px;margin-bottom:1.25rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+          <div class="section-label" style="margin-bottom:0;">Daily vertigo level</div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <input type="date" id="vt-date" style="font-size:13px;width:148px;" />
+            <select id="vt-level" style="font-size:13px;width:115px;">
+              <option value="">Level</option>
+              <option value="1">1 - None</option>
+              <option value="2">2 - Mild</option>
+              <option value="3">3 - Moderate</option>
+              <option value="4">4 - Significant</option>
+              <option value="5">5 - Severe</option>
+            </select>
+            <button class="btn-secondary" onclick="logVertigo()" style="padding:6px 12px;font-size:13px;">Log</button>
+          </div>
+        </div>
+        <canvas id="vertigo-chart" height="100" style="width:100%;display:block;"></canvas>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:6px;" id="vt-hint">Log at least 2 days to see your trend.</div>
+      </div>
+
+      <!-- Readiness -->
+      <div class="section">
+        <div class="section-label">Readiness check</div>
+        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">How are you feeling right now? This shapes your workout.</div>
+        <div class="readiness-btns">
+          <button class="readiness-btn" id="ready-green" onclick="setReadiness('green')">
+            <span style="font-size:20px;">&#128994;</span>
+            <span style="font-weight:500;">Green</span>
+            <span style="font-size:11px;color:var(--green-text);">Full workout</span>
+          </button>
+          <button class="readiness-btn" id="ready-yellow" onclick="setReadiness('yellow')">
+            <span style="font-size:20px;">&#128993;</span>
+            <span style="font-weight:500;">Yellow</span>
+            <span style="font-size:11px;color:var(--amber-text);">Modified - 20% less</span>
+          </button>
+          <button class="readiness-btn" id="ready-red" onclick="setReadiness('red')">
+            <span style="font-size:20px;">&#128308;</span>
+            <span style="font-weight:500;">Red</span>
+            <span style="font-size:11px;color:var(--coral-text);">Floor mobility only</span>
+          </button>
+        </div>
+        <div style="font-size:13px;color:var(--text-secondary);margin-top:10px;" id="readiness-desc"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">Date</div>
+        <input type="date" id="wo-date" />
+      </div>
+
+      <!-- GREEN -->
+      <div id="wo-green" style="display:none;">
+        <div class="section">
+          <div class="section-label">Workout type</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem;">
+            <button class="filter-btn active" onclick="setWoType('strength',this)">Strength</button>
+            <button class="filter-btn" onclick="setWoType('cardio',this)">Cardio</button>
+            <button class="filter-btn" onclick="setWoType('sport',this)">Sport / class</button>
+          </div>
+          <div class="field" style="margin-bottom:10px;">
+            <label>Activity name</label>
+            <input type="text" id="wo-name" placeholder="e.g. Upper body push, 5k run" style="width:100%;" />
+          </div>
+          <div class="row">
+            <div class="field"><label>Duration (mins)</label><input type="text" id="wo-duration" placeholder="45" style="width:100px;" /></div>
+            <div class="field"><label>Distance (optional)</label><input type="text" id="wo-distance" placeholder="3.2 miles" style="width:140px;" /></div>
+          </div>
+        </div>
+        <div class="section">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div class="section-label" style="margin-bottom:0;">Exercise log - week <span id="current-week-label">1</span> of 16</div>
+            <button class="btn-secondary" onclick="addExRow()" style="font-size:12px;padding:4px 10px;">+ Exercise</button>
+          </div>
+          <div class="week-btns" id="week-btns"></div>
+          <div class="ex-header">
+            <span>Exercise</span><span>Weight</span><span>Sets</span><span>Reps</span><span>2-rep buffer</span><span></span>
+          </div>
+          <div id="ex-rows"></div>
+        </div>
+      </div>
+
+      <!-- YELLOW -->
+      <div id="wo-yellow" style="display:none;">
+        <div class="section" style="border-left:3px solid var(--amber-border);padding-left:12px;">
+          <div class="section-label" style="color:var(--amber-text);">Modified - 20% reduction</div>
+          <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">Enter normal weight; reduced target calculated automatically.</div>
+          <div class="field" style="margin-bottom:10px;">
+            <label>Activity name</label>
+            <input type="text" id="wo-name-y" placeholder="e.g. Upper body push (modified)" style="width:100%;" />
+          </div>
+          <div class="field" style="margin-bottom:12px;">
+            <label>Duration (mins)</label>
+            <input type="text" id="wo-duration-y" placeholder="45" style="width:100px;" />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 90px 90px 32px;gap:6px;margin-bottom:4px;">
+            <span style="font-size:11px;color:var(--text-secondary);">Exercise</span>
+            <span style="font-size:11px;color:var(--text-secondary);">Normal wt</span>
+            <span style="font-size:11px;color:var(--amber-text);">Target (-20%)</span>
+            <span></span>
+          </div>
+          <div id="ex-rows-y"></div>
+          <button class="btn-secondary" onclick="addExRowY()" style="font-size:12px;padding:4px 10px;margin-top:6px;">+ Exercise</button>
+        </div>
+      </div>
+
+      <!-- RED -->
+      <div id="wo-red" style="display:none;">
+        <div class="section" style="border-left:3px solid var(--coral-border);padding-left:12px;">
+          <div class="section-label" style="color:var(--coral-text);">Red day - floor mobility only</div>
+          <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">Tap to add, or type your own.</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+            <span class="chip" style="cursor:pointer;" onclick="addMobility(this)">Dead bug</span>
+            <span class="chip" style="cursor:pointer;" onclick="addMobility(this)">Glute bridge</span>
+            <span class="chip" style="cursor:pointer;" onclick="addMobility(this)">Bird dog</span>
+            <span class="chip" style="cursor:pointer;" onclick="addMobility(this)">Cat-cow</span>
+            <span class="chip" style="cursor:pointer;" onclick="addMobility(this)">Supine twist</span>
+            <span class="chip" style="cursor:pointer;" onclick="addMobility(this)">Diaphragmatic breathing</span>
+            <span class="chip" style="cursor:pointer;" onclick="addMobility(this)">Pallof press (band)</span>
+            <span class="chip" style="cursor:pointer;" onclick="addMobility(this)">Hip 90/90 stretch</span>
+            <span class="chip" style="cursor:pointer;" onclick="addMobility(this)">Child pose</span>
+            <span class="chip" style="cursor:pointer;" onclick="addMobility(this)">Prone cobra</span>
+          </div>
+          <div class="chips" id="mobility-chips" style="margin-bottom:10px;"></div>
+          <div class="add-row">
+            <input type="text" id="mobility-input" placeholder="Custom move..." style="width:200px;" onkeydown="if(event.key==='Enter')addCustomMobility()" />
+            <button class="btn-secondary" onclick="addCustomMobility()">Add</button>
+          </div>
+          <div class="field" style="margin-top:12px;">
+            <label>Duration (mins)</label>
+            <input type="text" id="wo-duration-r" placeholder="20" style="width:100px;" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Shared feel/symptoms/notes -->
+      <div class="section">
+        <div class="section-label">Effort level</div>
+        <div class="severity" id="wo-effort-btns">
+          <button class="sev-btn" onclick="setWoEffort(1)">1</button>
+          <button class="sev-btn" onclick="setWoEffort(2)">2</button>
+          <button class="sev-btn" onclick="setWoEffort(3)">3</button>
+          <button class="sev-btn" onclick="setWoEffort(4)">4</button>
+          <button class="sev-btn" onclick="setWoEffort(5)">5</button>
+        </div>
+        <div class="sev-label" id="wo-effort-label">Not set</div>
+      </div>
+      <div class="section">
+        <div class="section-label">How did your body feel?</div>
+        <div class="row">
+          <div class="field"><label>During</label>
+            <select id="wo-feel-during">
+              <option value="">select...</option>
+              <option>Great - strong and energised</option>
+              <option>Good - felt normal</option>
+              <option>Okay - a bit sluggish</option>
+              <option>Struggled - low energy</option>
+              <option>Poor - had to push through</option>
+            </select>
+          </div>
+          <div class="field"><label>After</label>
+            <select id="wo-feel-after">
+              <option value="">select...</option>
+              <option>Great - energised</option>
+              <option>Good - normal recovery</option>
+              <option>Tired but okay</option>
+              <option>Very fatigued</option>
+              <option>Crashed / unwell</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-label">Post-workout symptoms (if any)</div>
+        <div class="add-row">
+          <input type="text" id="wo-sym-input" placeholder="e.g. fatigue, joint pain, brain fog" onkeydown="if(event.key==='Enter')addWoSym()" />
+          <button class="btn-secondary" onclick="addWoSym()">Add</button>
+        </div>
+        <div class="chips" id="wo-sym-chips"></div>
+      </div>
+      <div class="section" style="margin-bottom:1.5rem;">
+        <div class="section-label">Notes (optional)</div>
+        <textarea id="wo-notes" placeholder="How you felt overall, adjustments made..."></textarea>
+      </div>
+      <button class="btn-primary" onclick="saveWorkout()">Save workout</button>
+
+      <!-- Workout history inline -->
+      <div style="margin-top:2rem;padding-top:1.5rem;border-top:0.5px solid var(--border);">
+        <div class="section-label" style="margin-bottom:12px;">Workout history</div>
+        <div class="stat-grid" id="wo-stats-grid"></div>
+        <div class="filter-row">
+          <button class="filter-btn active" onclick="setWoFilter('all',this)">All</button>
+          <button class="filter-btn" onclick="setWoFilter('strength',this)">Strength</button>
+          <button class="filter-btn" onclick="setWoFilter('cardio',this)">Cardio</button>
+          <button class="filter-btn" onclick="setWoFilter('sport',this)">Sport</button>
+          <button class="filter-btn" onclick="setWoFilter('red',this)">Red days</button>
+        </div>
+        <div class="entries-list" id="wo-entries-list"></div>
+      </div>
+      <div class="export-block" style="margin-top:1.5rem;">
+        <div class="export-title">Export workout log</div>
+        <div class="export-desc">Separate from your health and food export.</div>
+        <div class="btn-row">
+          <button class="btn-secondary" onclick="exportWorkoutCSV()">Download CSV</button>
+          <button class="btn-secondary" onclick="exportWorkoutText()">Download plain text</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY TAB -->
+<div id="tab-history" style="display:none;">
+  <div class="stat-grid" id="stats-grid"></div>
+  <div class="filter-row">
+    <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn" onclick="setFilter('symptom',this)">Symptoms</button>
+    <button class="filter-btn" onclick="setFilter('food',this)">Food</button>
+    <div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
+      <input type="date" id="filter-from" style="font-size:13px;width:145px;" onchange="renderHistory()" />
+      <span style="font-size:13px;color:var(--text-secondary);">-</span>
+      <input type="date" id="filter-to" style="font-size:13px;width:145px;" onchange="renderHistory()" />
+    </div>
+  </div>
+  <div class="entries-list" id="entries-list"></div>
+</div>
+
+<!-- EXPORT TAB -->
+<div id="tab-export" style="display:none;">
+  <div class="export-block">
+    <div class="export-title">Download for your doctor</div>
+    <div class="export-desc">Export your full symptom and food log as CSV or plain text.</div>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="exportCSV()">Download CSV</button>
+      <button class="btn-secondary" onclick="exportText()">Download plain text</button>
+    </div>
+  </div>
+  <div class="export-block">
+    <div class="export-title">Copy as text</div>
+    <div class="export-desc">Paste directly into a patient portal or email.</div>
+    <button class="btn-secondary" onclick="copyText()">Copy to clipboard</button>
+  </div>
+  <div class="export-block">
+    <div class="export-title">Data summary</div>
+    <div class="export-desc" id="data-summary">-</div>
+  </div>
+</div>
+
+<!-- SETTINGS TAB -->
+<div id="tab-settings" style="display:none;">
+  <div class="setup-panel" id="setup-panel">
+    <div class="setup-title">Connect Google Drive</div>
+    <div class="setup-desc">Follow these steps once to enable Drive sync. Your data saves to <strong>health-tracker-data.json</strong> in your Drive.</div>
+    <div class="setup-step"><div class="step-num">1</div><div><div class="step-label">Open Google Cloud Console</div><div class="step-detail">Go to <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a> and sign in.</div></div></div>
+    <div class="setup-step"><div class="step-num">2</div><div><div class="step-label">Create a project</div><div class="step-detail">Project dropdown - New Project - name it Health Tracker - Create.</div></div></div>
+    <div class="setup-step"><div class="step-num">3</div><div><div class="step-label">Enable the Google Drive API</div><div class="step-detail">APIs and Services - Library - search Google Drive API - Enable.</div></div></div>
+    <div class="setup-step"><div class="step-num">4</div><div><div class="step-label">Configure OAuth consent screen</div><div class="step-detail">APIs and Services - OAuth consent screen - External - fill in app name and email - Save and Continue through all steps.</div></div></div>
+    <div class="setup-step"><div class="step-num">5</div><div><div class="step-label">Create OAuth Client ID</div><div class="step-detail">APIs and Services - Credentials - Create Credentials - OAuth client ID - Web application - add your GitHub Pages URL under Authorised JavaScript origins - Create.</div></div></div>
+    <div class="setup-step"><div class="step-num">6</div><div><div class="step-label">Paste your Client ID below</div><div class="step-detail">Copy the Client ID ending in .apps.googleusercontent.com and paste it here.</div>
+      <div class="client-id-row">
+        <input type="text" id="client-id-input" placeholder="Paste your Client ID here" style="width:100%;" />
+        <button class="btn-primary" onclick="saveClientId()">Save</button>
+      </div>
+      <div style="margin-top:12px;">
+        <button class="btn-google" id="signin-btn" onclick="connectDrive()" style="display:none;">Sign in with Google</button>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="card" id="drive-account-card" style="display:none;">
+    <div class="section-label">Google Drive</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div style="font-size:14px;font-weight:500;" id="drive-user-name">Connected</div>
+        <div style="font-size:13px;color:var(--text-secondary);" id="drive-user-email"></div>
+      </div>
+      <button class="btn-secondary btn-danger" onclick="disconnectDrive()">Disconnect</button>
+    </div>
+    <div style="margin-top:14px;padding-top:14px;border-top:0.5px solid var(--border);font-size:13px;color:var(--text-secondary);">
+      Saves to: <strong style="color:var(--text);">health-tracker-data.json</strong><br>
+      <span id="last-synced">Last synced: never</span>
+    </div>
+    <div style="margin-top:12px;"><button class="btn-secondary" onclick="forceSync()">Sync now</button></div>
+  </div>
+
+  <div class="card" style="margin-top:1rem;">
+    <div class="section-label">Daily reminders</div>
+    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:1rem;line-height:1.6;">Browser notifications to log entries. App must be open in a tab.</div>
+    <div id="notif-blocked-banner" style="display:none;background:var(--red-bg);border:0.5px solid var(--red-border);border-radius:var(--radius-md);padding:10px 14px;margin-bottom:1rem;font-size:13px;color:var(--red-text);">Notifications blocked. Click the lock icon in your address bar - Notifications - Allow.</div>
+    <div style="display:flex;flex-direction:column;gap:0;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;">
+        <div><div style="font-size:14px;font-weight:500;">Morning</div><div style="font-size:12px;color:var(--text-secondary);">After breakfast</div></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="time" id="reminder-morning" value="08:30" style="font-size:13px;width:110px;" onchange="saveReminders()" />
+          <label class="toggle-switch"><input type="checkbox" id="reminder-morning-on" onchange="saveReminders()" checked /><span class="toggle-track"></span></label>
+        </div>
+      </div>
+      <div style="border-top:0.5px solid var(--border);padding:12px 0;display:flex;justify-content:space-between;align-items:center;">
+        <div><div style="font-size:14px;font-weight:500;">Midday</div><div style="font-size:12px;color:var(--text-secondary);">After lunch</div></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="time" id="reminder-midday" value="13:00" style="font-size:13px;width:110px;" onchange="saveReminders()" />
+          <label class="toggle-switch"><input type="checkbox" id="reminder-midday-on" onchange="saveReminders()" checked /><span class="toggle-track"></span></label>
+        </div>
+      </div>
+      <div style="border-top:0.5px solid var(--border);padding-top:12px;display:flex;justify-content:space-between;align-items:center;">
+        <div><div style="font-size:14px;font-weight:500;">Evening</div><div style="font-size:12px;color:var(--text-secondary);">After dinner</div></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="time" id="reminder-evening" value="19:00" style="font-size:13px;width:110px;" onchange="saveReminders()" />
+          <label class="toggle-switch"><input type="checkbox" id="reminder-evening-on" onchange="saveReminders()" checked /><span class="toggle-track"></span></label>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:1.25rem;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <button class="btn-secondary" id="enable-notif-btn" onclick="enableNotifications()">Enable notifications</button>
+      <div style="font-size:12px;color:var(--text-secondary);" id="notif-status">Not enabled yet</div>
+    </div>
+  </div>
+
+  <div class="export-block" style="margin-top:1rem;">
+    <div class="export-title">Clear all data</div>
+    <div class="export-desc">Permanently delete all entries from this device and Drive.</div>
+    <button class="btn-secondary btn-danger" onclick="clearAll()">Clear all entries</button>
+  </div>
+</div>
+
+</div>
+</div>
+<div class="toast" id="toast"></div>
+<script src="https://accounts.google.com/gsi/client" async></script>
+<script>
+var entries=[],workouts=[],vertigoLog=[],weekData={};
+var currentType='symptom',currentSev=0,woEffort=0,woFilter='all',histFilter='all';
+var symTags=[],foodTags=[],woSymTags=[],mobilitySelected=[],exerciseRows=[],exerciseRowsY=[];
+var currentWeek=1,woReadiness=null,woType='strength';
+var accessToken=null,tokenClient=null,driveFileId=null,reminderInterval=null;
+var SK='health-tracker-entries-v1',WK='health-tracker-workouts-v1',VK='health-tracker-vertigo-v1';
+var WDK='health-tracker-weekdata-v1',CK='health-tracker-client-id',DK='health-tracker-drive-file-id',RK='health-tracker-reminders-v1';
+var SL=['','Mild','Noticeable','Moderate','Significant','Severe'];
+var EL=['','Very easy','Easy','Moderate','Hard','Max effort'];
+var TL={strength:'Strength',cardio:'Cardio',sport:'Sport / other',red:'Red day'};
+
+function g(id){return document.getElementById(id);}
+function v(id){var e=g(id);return e?e.value.trim():'';}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function sc(n,l){return '<div class="stat-card"><div class="stat-num">'+n+'</div><div class="stat-lbl">'+l+'</div></div>';}
+function fmtDate(d){if(!d)return'';return new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
+function toast(msg){var t=g('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('show');},2400);}
+function dl(fn,content,type){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type:type}));a.download=fn;document.body.appendChild(a);a.click();document.body.removeChild(a);}
+
+function init(){
+  loadLocal();
+  var today=new Date().toISOString().split('T')[0];
+  ['sym-date','food-date','wo-date','vt-date'].forEach(function(id){var e=g(id);if(e)e.value=today;});
+  buildWeekBtns();loadReminders();
+  var sid=localStorage.getItem(CK);
+  g('setup-panel').style.display='block';
+  if(sid){g('client-id-input').value=sid;g('signin-btn').style.display='inline-flex';initGAuth(sid);}
+  else{setSyncStatus('disconnected');g('auth-banner-log').style.display='block';}
+}
+
+function loadLocal(){
+  try{var r=localStorage.getItem(SK);if(r)entries=JSON.parse(r);}catch(e){entries=[];}
+  try{var r=localStorage.getItem(WK);if(r)workouts=JSON.parse(r);}catch(e){workouts=[];}
+  try{var r=localStorage.getItem(VK);if(r)vertigoLog=JSON.parse(r);}catch(e){vertigoLog=[];}
+  try{var r=localStorage.getItem(WDK);if(r)weekData=JSON.parse(r);}catch(e){weekData={};}
+}
+function saveLocal(){try{localStorage.setItem(SK,JSON.stringify(entries));}catch(e){}}
+function saveWLocal(){try{localStorage.setItem(WK,JSON.stringify(workouts));}catch(e){}}
+
+function showTab(t){
+  ['log','history','export','settings'].forEach(function(id){g('tab-'+id).style.display=id===t?'block':'none';});
+  document.querySelectorAll('.tab').forEach(function(b,i){b.classList.toggle('active',['log','history','export','settings'][i]===t);});
+  if(t==='history')renderHistory();
+  if(t==='export')renderExportSummary();
+}
+
+function setType(t){
+  currentType=t;
+  g('form-symptom').style.display=t==='symptom'?'block':'none';
+  g('form-food').style.display=t==='food'?'block':'none';
+  g('form-workout').style.display=t==='workout'?'block':'none';
+  g('btn-symptom').className='type-btn'+(t==='symptom'?' active-symptom':'');
+  g('btn-food').className='type-btn'+(t==='food'?' active-food':'');
+  g('btn-workout').className='type-btn'+(t==='workout'?' active-workout':'');
+  if(t==='workout'){renderWorkouts();setTimeout(renderVertigoChart,80);}
+}
+
+function addTag(type){
+  var iid=type==='sym'?'sym-input':'food-input';
+  var arr=type==='sym'?symTags:foodTags;
+  var cid=type==='sym'?'sym-chips':'food-chips';
+  var val=g(iid).value.trim();if(!val)return;
+  arr.push(val);g(iid).value='';renderTagChips(cid,arr,type);
+}
+function renderTagChips(cid,arr,type){
+  g(cid).innerHTML=arr.map(function(c,i){return '<span class="chip">'+esc(c)+'<button onclick="removeTag(''+type+'','+i+')">x</button></span>';}).join('');
+}
+function removeTag(type,i){
+  if(type==='sym'){symTags.splice(i,1);renderTagChips('sym-chips',symTags,'sym');}
+  else{foodTags.splice(i,1);renderTagChips('food-chips',foodTags,'food');}
+}
+function setSev(n){
+  currentSev=n;
+  document.querySelectorAll('#sev-btns .sev-btn').forEach(function(b,i){b.className='sev-btn'+(i+1===n?' sev-'+n:'');});
+  g('sev-label').textContent=SL[n];
+}
+function saveEntry(){
+  var now=Date.now();
+  if(currentType==='symptom'){
+    if(!symTags.length){toast('Add at least one symptom');return;}
+    entries.push({id:now,type:'symptom',date:v('sym-date'),time:v('sym-time'),items:symTags.slice(),severity:currentSev,notes:v('sym-notes')});
+    symTags=[];renderTagChips('sym-chips',symTags,'sym');
+    g('sym-time').value='';g('sym-notes').value='';currentSev=0;
+    document.querySelectorAll('#sev-btns .sev-btn').forEach(function(b){b.className='sev-btn';});
+    g('sev-label').textContent='Not set';
+  }else{
+    if(!foodTags.length){toast('Add at least one food item');return;}
+    entries.push({id:now,type:'food',date:v('food-date'),meal:v('food-meal'),items:foodTags.slice(),notes:v('food-notes')});
+    foodTags=[];renderTagChips('food-chips',foodTags,'food');g('food-notes').value='';
+  }
+  entries.sort(function(a,b){return b.date.localeCompare(a.date)||b.id-a.id;});
+  saveLocal();saveToDrive();toast('Entry saved'+(accessToken?' and synced':''));
+}
+
+function setReadiness(level){
+  woReadiness=level;
+  ['green','yellow','red'].forEach(function(l){g('ready-'+l).className='readiness-btn'+(l===level?' r'+l[0]:'');});
+  var d={green:'Full workout. Log sets, reps, and use the two-rep buffer.',yellow:'Modified - 20% reduction. Focus on movement quality.',red:'Red day. Floor mobility and stability only.'};
+  g('readiness-desc').textContent=d[level];
+  g('wo-green').style.display=level==='green'?'block':'none';
+  g('wo-yellow').style.display=level==='yellow'?'block':'none';
+  g('wo-red').style.display=level==='red'?'block':'none';
+  if(level==='green'&&exerciseRows.length===0)addExRow();
+  if(level==='yellow'&&exerciseRowsY.length===0)addExRowY();
+}
+function setWoType(t,btn){
+  woType=t;
+  document.querySelectorAll('#wo-green .filter-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+}
+function setWoEffort(n){
+  woEffort=n;
+  document.querySelectorAll('#wo-effort-btns .sev-btn').forEach(function(b,i){b.className='sev-btn'+(i+1===n?' sev-'+n:'');});
+  g('wo-effort-label').textContent=EL[n];
+}
+function addWoSym(){var val=g('wo-sym-input').value.trim();if(!val)return;woSymTags.push(val);g('wo-sym-input').value='';renderWoSyms();}
+function renderWoSyms(){g('wo-sym-chips').innerHTML=woSymTags.map(function(c,i){return '<span class="chip">'+esc(c)+'<button onclick="removeWoSym('+i+')">x</button></span>';}).join('');}
+function removeWoSym(i){woSymTags.splice(i,1);renderWoSyms();}
+
+function addMobility(el){var m=el.textContent.trim();if(!mobilitySelected.includes(m)){mobilitySelected.push(m);renderMobility();}}
+function addCustomMobility(){var val=g('mobility-input').value.trim();if(!val)return;mobilitySelected.push(val);g('mobility-input').value='';renderMobility();}
+function renderMobility(){g('mobility-chips').innerHTML=mobilitySelected.map(function(m,i){return '<span class="chip">'+esc(m)+'<button onclick="removeMobility('+i+')">x</button></span>';}).join('');}
+function removeMobility(i){mobilitySelected.splice(i,1);renderMobility();}
+
+function buildWeekBtns(){
+  var el=g('week-btns');if(!el)return;
+  var html='';
+  for(var i=1;i<=16;i++){var h=weekData['w'+i]&&weekData['w'+i].length;html+='<button class="week-btn'+(i===currentWeek?' active':'')+(h?' has-data':'')+'" onclick="selectWeek('+i+')">'+i+'</button>';}
+  el.innerHTML=html;
+}
+function selectWeek(w){
+  currentWeek=w;g('current-week-label').textContent=w;buildWeekBtns();
+  exerciseRows=weekData['w'+w]?JSON.parse(JSON.stringify(weekData['w'+w])):[];
+  if(exerciseRows.length===0)addExRow();else renderExRows();
+}
+function addExRow(){exerciseRows.push({name:'',weight:'',sets:'',reps:'',buf:false});renderExRows();}
+function renderExRows(){
+  var el=g('ex-rows');if(!el)return;
+  el.innerHTML=exerciseRows.map(function(r,i){
+    return '<div class="ex-row">'+
+      '<input type="text" placeholder="Exercise" value="'+esc(r.name||'')+'" oninput="updateEx('+i+','name',this.value)" />'+
+      '<input type="text" placeholder="lbs/kg" value="'+esc(r.weight||'')+'" oninput="updateEx('+i+','weight',this.value)" />'+
+      '<input type="text" placeholder="sets" value="'+esc(r.sets||'')+'" oninput="updateEx('+i+','sets',this.value)" />'+
+      '<input type="text" placeholder="reps" value="'+esc(r.reps||'')+'" oninput="updateEx('+i+','reps',this.value)" />'+
+      '<label class="two-rep"><input type="checkbox"'+(r.buf?' checked':'')+' onchange="updateEx('+i+','buf',this.checked)" /> In buffer</label>'+
+      '<button class="btn-secondary" onclick="removeEx('+i+')" style="padding:3px 7px;font-size:13px;">x</button>'+
+    '</div>';
+  }).join('');
+}
+function updateEx(i,f,v){if(exerciseRows[i]){exerciseRows[i][f]=v;saveWeekData();}}
+function removeEx(i){exerciseRows.splice(i,1);renderExRows();saveWeekData();}
+function saveWeekData(){weekData['w'+currentWeek]=JSON.parse(JSON.stringify(exerciseRows));try{localStorage.setItem(WDK,JSON.stringify(weekData));}catch(e){}buildWeekBtns();}
+
+function addExRowY(){exerciseRowsY.push({name:'',weight:''});renderExRowsY();}
+function renderExRowsY(){
+  var el=g('ex-rows-y');if(!el)return;
+  el.innerHTML=exerciseRowsY.map(function(r,i){
+    var n=parseFloat(r.weight)||0,rd=n?(Math.round(n*0.8*10)/10):'--';
+    return '<div style="display:grid;grid-template-columns:1fr 90px 90px 32px;gap:6px;margin-bottom:6px;align-items:center;">'+
+      '<input type="text" placeholder="Exercise" value="'+esc(r.name||'')+'" oninput="updateExY('+i+','name',this.value)" style="font-size:13px;padding:6px 8px;" />'+
+      '<input type="text" placeholder="lbs/kg" value="'+esc(r.weight||'')+'" oninput="updateExY('+i+','weight',this.value)" style="font-size:13px;padding:6px 8px;" />'+
+      '<div style="font-size:13px;font-weight:500;color:var(--amber-text);padding:6px 8px;background:var(--amber-bg);border-radius:var(--radius-md);text-align:center;">'+rd+'</div>'+
+      '<button class="btn-secondary" onclick="removeExY('+i+')" style="padding:3px 7px;font-size:13px;">x</button>'+
+    '</div>';
+  }).join('');
+}
+function updateExY(i,f,v){if(exerciseRowsY[i]){exerciseRowsY[i][f]=v;renderExRowsY();}}
+function removeExY(i){exerciseRowsY.splice(i,1);renderExRowsY();}
+
+function saveWorkout(){
+  if(!woReadiness){toast('Complete the readiness check first');return;}
+  var name='',duration='',distance='',exercises=[];
+  if(woReadiness==='green'){
+    name=v('wo-name');duration=v('wo-duration');distance=v('wo-distance');
+    exercises=exerciseRows.filter(function(r){return r.name;});
+  }else if(woReadiness==='yellow'){
+    name=v('wo-name-y');duration=v('wo-duration-y');
+    exercises=exerciseRowsY.filter(function(r){return r.name;}).map(function(r){
+      return{name:r.name,weight:r.weight,reducedWeight:r.weight?Math.round(parseFloat(r.weight)*0.8*10)/10:''};
+    });
+  }else{
+    name='Red day - floor mobility';duration=v('wo-duration-r');
+    exercises=mobilitySelected.map(function(m){return{name:m};});
+  }
+  if(!name&&woReadiness!=='red'){toast('Add an activity name');return;}
+  workouts.push({id:Date.now(),date:v('wo-date'),type:woReadiness==='red'?'red':woType,readiness:woReadiness,
+    name:name||'Red day mobility',duration:duration,distance:distance,effort:woEffort,exercises:exercises,
+    feelDuring:v('wo-feel-during'),feelAfter:v('wo-feel-after'),symptoms:woSymTags.slice(),notes:v('wo-notes')});
+  workouts.sort(function(a,b){return b.date.localeCompare(a.date)||b.id-a.id;});
+  saveWLocal();
+  woSymTags=[];mobilitySelected=[];woEffort=0;woReadiness=null;exerciseRowsY=[];
+  renderWoSyms();renderMobility();
+  document.querySelectorAll('#wo-effort-btns .sev-btn').forEach(function(b){b.className='sev-btn';});
+  g('wo-effort-label').textContent='Not set';g('readiness-desc').textContent='';
+  ['green','yellow','red'].forEach(function(l){g('ready-'+l).className='readiness-btn';});
+  ['wo-green','wo-yellow','wo-red'].forEach(function(id){g(id).style.display='none';});
+  ['wo-name','wo-duration','wo-distance','wo-name-y','wo-duration-y','wo-duration-r','wo-notes','mobility-input'].forEach(function(id){var e=g(id);if(e)e.value='';});
+  var fd=g('wo-feel-during'),fa=g('wo-feel-after');if(fd)fd.value='';if(fa)fa.value='';
+  renderWorkouts();toast('Workout saved');
+}
+
+function setWoFilter(f,btn){
+  woFilter=f;
+  document.querySelectorAll('#form-workout .filter-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');renderWorkouts();
+}
+function renderWorkouts(){
+  var filtered=workouts.filter(function(w){return woFilter==='all'||w.type===woFilter;});
+  var tm=workouts.reduce(function(s,w){return s+(parseInt(w.duration)||0);},0);
+  var rd=workouts.filter(function(w){return w.readiness==='red';}).length;
+  var ew=workouts.filter(function(w){return w.effort>0;});
+  var avg=ew.length?(ew.reduce(function(s,w){return s+w.effort;},0)/ew.length).toFixed(1):'--';
+  var sg=g('wo-stats-grid');
+  if(sg)sg.innerHTML=sc(workouts.length,'Workouts')+sc(tm?tm+'m':'--','Total time')+sc(avg,'Avg effort')+sc(rd,'Red days');
+  var el=g('wo-entries-list');if(!el)return;
+  if(!filtered.length){el.innerHTML='<div class="empty-state">No workouts yet.</div>';return;}
+  var rb={green:'G',yellow:'Y',red:'R'};
+  el.innerHTML=filtered.map(function(w){
+    var det=[];if(w.duration)det.push(w.duration+' mins');if(w.distance)det.push(w.distance);if(w.effort)det.push('Effort '+w.effort+'/5');
+    var exH='';
+    if(w.exercises&&w.exercises.length){exH='<div style="font-size:12px;color:var(--text-secondary);margin-top:5px;">'+w.exercises.map(function(e){var p=[e.name];if(e.reducedWeight)p.push(e.reducedWeight+'lbs (-20%)');else if(e.weight)p.push(e.weight+'lbs');if(e.sets)p.push(e.sets+' sets');if(e.reps)p.push(e.reps+' reps');if(e.buf)p.push('buf');return p.join(' - ');}).join(' | ')+'</div>';}
+    return '<div class="entry-card">'+
+      '<div class="entry-header"><div class="entry-meta-row">'+
+        '<span class="entry-date">'+fmtDate(w.date)+'</span>'+
+        '<span class="badge badge-workout">'+(TL[w.type]||w.type)+'</span>'+
+        (w.readiness?'<span style="font-size:11px;padding:2px 6px;border-radius:10px;background:var(--bg-secondary);">'+(rb[w.readiness]||'')+'</span>':'')+
+        (w.symptoms&&w.symptoms.length?'<span class="badge badge-symptom">Symptoms</span>':'')+
+      '</div><button class="entry-delete" onclick="deleteWorkout('+w.id+')">x</button></div>'+
+      '<div class="entry-main">'+esc(w.name)+'</div>'+
+      (det.length?'<div style="font-size:13px;color:var(--text-secondary);margin-top:2px;">'+det.join(' - ')+'</div>':'')+
+      exH+
+      (w.feelDuring||w.feelAfter?'<div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">'+(w.feelDuring?'During: '+esc(w.feelDuring):'')+(w.feelDuring&&w.feelAfter?' | ':'')+(w.feelAfter?'After: '+esc(w.feelAfter):'')+'</div>':'')+
+      (w.symptoms&&w.symptoms.length?'<div style="font-size:13px;color:var(--coral-text);margin-top:3px;">Post-workout: '+esc(w.symptoms.join(', '))+'</div>':'')+
+      (w.notes?'<div class="entry-note">'+esc(w.notes)+'</div>':'')+
+    '</div>';
+  }).join('');
+}
+function deleteWorkout(id){if(!confirm('Delete this workout?'))return;workouts=workouts.filter(function(w){return w.id!==id;});saveWLocal();renderWorkouts();}
+
+function logVertigo(){
+  var date=v('vt-date'),level=v('vt-level');
+  if(!date||!level){toast('Select a date and level');return;}
+  vertigoLog=vertigoLog.filter(function(x){return x.date!==date;});
+  vertigoLog.push({date:date,level:parseInt(level)});
+  vertigoLog.sort(function(a,b){return a.date.localeCompare(b.date);});
+  try{localStorage.setItem(VK,JSON.stringify(vertigoLog));}catch(e){}
+  renderVertigoChart();toast('Vertigo level logged');
+}
+function renderVertigoChart(){
+  var canvas=g('vertigo-chart');if(!canvas)return;
+  var ctx=canvas.getContext('2d');
+  canvas.width=canvas.parentElement?canvas.parentElement.clientWidth:600;
+  canvas.height=110;ctx.clearRect(0,0,canvas.width,canvas.height);
+  var recent=vertigoLog.slice(-30);
+  if(recent.length<2){ctx.fillStyle='#888';ctx.font='13px system-ui';ctx.textAlign='center';ctx.fillText('Log at least 2 days to see your trend',canvas.width/2,55);return;}
+  var p={t:12,r:20,b:28,l:28},w=canvas.width-p.l-p.r,h=canvas.height-p.t-p.b;
+  [{min:0,max:2,c:'rgba(90,180,90,0.07)'},{min:2,max:3.5,c:'rgba(200,160,40,0.07)'},{min:3.5,max:5,c:'rgba(200,80,60,0.07)'}].forEach(function(b){
+    ctx.fillStyle=b.c;ctx.fillRect(p.l,p.t+h-(b.max/5)*h,w,(b.max-b.min)/5*h);
+  });
+  ctx.strokeStyle='rgba(128,128,128,0.12)';ctx.lineWidth=0.5;
+  [1,2,3,4,5].forEach(function(vv){var y=p.t+h-(vv/5)*h;ctx.beginPath();ctx.moveTo(p.l,y);ctx.lineTo(p.l+w,y);ctx.stroke();});
+  ctx.fillStyle='#888';ctx.font='10px system-ui';ctx.textAlign='right';
+  [1,3,5].forEach(function(vv){ctx.fillText(vv,p.l-4,p.t+h-(vv/5)*h+4);});
+  ctx.strokeStyle='#378ADD';ctx.lineWidth=2;ctx.beginPath();
+  recent.forEach(function(pt,i){var x=p.l+(i/(recent.length-1))*w,y=p.t+h-(pt.level/5)*h;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+  ctx.stroke();
+  recent.forEach(function(pt,i){
+    var x=p.l+(i/(recent.length-1))*w,y=p.t+h-(pt.level/5)*h;
+    ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);
+    ctx.fillStyle=pt.level<=2?'#639922':pt.level<=3?'#BA7517':'#D85A30';ctx.fill();
+  });
+  ctx.fillStyle='#888';ctx.textAlign='center';
+  [[0,recent[0].date],[Math.floor(recent.length/2),recent[Math.floor(recent.length/2)].date],[recent.length-1,recent[recent.length-1].date]].forEach(function(pair){
+    var x=p.l+(pair[0]/(recent.length-1))*w,dt=new Date(pair[1]+'T12:00:00');
+    ctx.fillText((dt.getMonth()+1)+'/'+(dt.getDate()),x,p.t+h+16);
+  });
+  var hint=g('vt-hint');
+  if(hint&&recent.length){var last=recent[recent.length-1];var lv=['','None','Mild','Moderate','Significant','Severe'];hint.textContent='Latest: '+fmtDate(last.date)+' - Level '+last.level+' ('+lv[last.level]+'). '+recent.length+' days tracked.';}
+}
+
+function setFilter(f,btn){
+  histFilter=f;document.querySelectorAll('#tab-history .filter-btn').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');renderHistory();
+}
+function renderHistory(){
+  var from=v('filter-from'),to=v('filter-to');
+  var filtered=entries.filter(function(e){if(histFilter!=='all'&&e.type!==histFilter)return false;if(from&&e.date<from)return false;if(to&&e.date>to)return false;return true;}).sort(function(a,b){return b.date.localeCompare(a.date)||b.id-a.id;});
+  var sy=entries.filter(function(e){return e.type==='symptom';}),fo=entries.filter(function(e){return e.type==='food';});
+  var se=sy.filter(function(e){return e.severity>0;});
+  var av=se.length?(se.reduce(function(s,e){return s+e.severity;},0)/se.length).toFixed(1):'--';
+  var sg=g('stats-grid');if(sg)sg.innerHTML=sc(entries.length,'Total entries')+sc(sy.length,'Symptoms')+sc(fo.length,'Meals')+sc(av,'Avg severity');
+  var el=g('entries-list');if(!el)return;
+  if(!filtered.length){el.innerHTML='<div class="empty-state">No entries found.</div>';return;}
+  el.innerHTML=filtered.map(function(e){
+    var meta=e.type==='symptom'?(e.time?' - '+e.time:'')+(e.severity?' - Severity '+e.severity+'/5':''):' - '+(e.meal||'');
+    return '<div class="entry-card"><div class="entry-header"><div class="entry-meta-row">'+
+      '<span class="entry-date">'+fmtDate(e.date)+esc(meta)+'</span>'+
+      '<span class="badge badge-'+e.type+'">'+(e.type==='symptom'?'Symptom':'Food')+'</span>'+
+    '</div><button class="entry-delete" onclick="deleteEntry('+e.id+')">x</button></div>'+
+    '<div class="entry-main">'+esc(e.items.join(', '))+'</div>'+(e.notes?'<div class="entry-note">'+esc(e.notes)+'</div>':'')+
+    '</div>';
+  }).join('');
+}
+function deleteEntry(id){if(!confirm('Delete this entry?'))return;entries=entries.filter(function(e){return e.id!==id;});saveLocal();saveToDrive();renderHistory();}
+
+function renderExportSummary(){
+  var sy=entries.filter(function(e){return e.type==='symptom';}),fo=entries.filter(function(e){return e.type==='food';});
+  var dates=entries.map(function(e){return e.date;}).sort();
+  var range=dates.length?fmtDate(dates[0])+' to '+fmtDate(dates[dates.length-1]):'No entries yet';
+  var el=g('data-summary');if(el)el.textContent=entries.length+' total entries ('+sy.length+' symptoms, '+fo.length+' meals). Date range: '+range+'.';
+}
+function buildText(){
+  if(!entries.length)return'No entries logged yet.';
+  var sorted=entries.slice().sort(function(a,b){return a.date.localeCompare(b.date)||a.id-b.id;});
+  var lines=['HEALTH AND FOOD LOG','Generated: '+new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}),'---',''];
+  var ld='';
+  sorted.forEach(function(e){if(e.date!==ld){if(ld)lines.push('');lines.push('> '+fmtDate(e.date));lines.push('');ld=e.date;}if(e.type==='symptom')lines.push('  [SYMPTOM] '+e.items.join(', ')+(e.time?' at '+e.time:'')+(e.severity?' Severity '+e.severity+'/5':''));else lines.push('  ['+(e.meal||'FOOD').toUpperCase()+'] '+e.items.join(', '));if(e.notes)lines.push('    Notes: '+e.notes);});
+  return lines.join('
+');
+}
+function exportCSV(){
+  var rows=[['Date','Time','Meal','Type','Items','Severity','Notes']];
+  entries.slice().sort(function(a,b){return a.date.localeCompare(b.date)||a.id-b.id;}).forEach(function(e){rows.push([e.date,e.time||'',e.meal||'',e.type,e.items.join('; '),e.severity||'',(e.notes||'').replace(/"/g,'""')]);});
+  dl('health-log-'+new Date().toISOString().split('T')[0]+'.csv',rows.map(function(r){return r.map(function(c){return'"'+c+'"';}).join(',');}).join('
+'),'text/csv');
+}
+function exportText(){dl('health-log-'+new Date().toISOString().split('T')[0]+'.txt',buildText(),'text/plain');}
+function copyText(){var txt=buildText();if(navigator.clipboard)navigator.clipboard.writeText(txt).then(function(){toast('Copied');}).catch(function(){fbCopy(txt);});else fbCopy(txt);}
+function fbCopy(txt){var ta=document.createElement('textarea');ta.value=txt;ta.style.cssText='position:fixed;opacity:0;';document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand('copy');toast('Copied');}catch(e){toast('Use Download instead');}document.body.removeChild(ta);}
+
+function exportWorkoutCSV(){
+  var rows=[['Date','Readiness','Type','Activity','Duration','Distance','Effort','Exercises','Felt During','Felt After','Post-workout Symptoms','Notes']];
+  workouts.slice().sort(function(a,b){return a.date.localeCompare(b.date)||a.id-b.id;}).forEach(function(w){
+    var ex=(w.exercises||[]).map(function(e){return e.name+(e.weight?' '+e.weight:'')+(e.sets?' '+e.sets+'s':'')+(e.reps?' x'+e.reps:'')+(e.buf?' buf':'');}).join('; ');
+    rows.push([w.date,w.readiness||'',TL[w.type]||w.type,w.name,w.duration||'',w.distance||'',w.effort||'',ex,w.feelDuring||'',w.feelAfter||'',(w.symptoms||[]).join('; '),(w.notes||'').replace(/"/g,'""')]);
+  });
+  dl('workout-log-'+new Date().toISOString().split('T')[0]+'.csv',rows.map(function(r){return r.map(function(c){return'"'+c+'"';}).join(',');}).join('
+'),'text/csv');
+}
+function exportWorkoutText(){
+  if(!workouts.length){dl('workout-log.txt','No workouts logged yet.','text/plain');return;}
+  var sorted=workouts.slice().sort(function(a,b){return a.date.localeCompare(b.date)||a.id-b.id;});
+  var lines=['WORKOUT LOG','Generated: '+new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}),'---',''];
+  var ld='';
+  sorted.forEach(function(w){
+    if(w.date!==ld){if(ld)lines.push('');lines.push('> '+fmtDate(w.date));lines.push('');ld=w.date;}
+    lines.push('  ['+(TL[w.type]||w.type).toUpperCase()+'] '+w.name+(w.duration?' '+w.duration+' mins':'')+(w.effort?' Effort '+w.effort+'/5':''));
+    if(w.exercises&&w.exercises.length)w.exercises.forEach(function(e){var p=[e.name];if(e.reducedWeight)p.push(e.reducedWeight+'lbs (-20%)');else if(e.weight)p.push(e.weight+'lbs');if(e.sets)p.push(e.sets+' sets');if(e.reps)p.push(e.reps+' reps');if(e.buf)p.push('buffer');lines.push('    '+p.join(' - '));});
+    if(w.feelDuring)lines.push('    During: '+w.feelDuring);
+    if(w.feelAfter)lines.push('    After: '+w.feelAfter);
+    if(w.symptoms&&w.symptoms.length)lines.push('    Post-workout: '+w.symptoms.join(', '));
+    if(w.notes)lines.push('    Notes: '+w.notes);
+  });
+  dl('workout-log-'+new Date().toISOString().split('T')[0]+'.txt',lines.join('
+'),'text/plain');
+}
+
+function clearAll(){if(!confirm('Delete ALL entries? Export a backup first.'))return;entries=[];workouts=[];saveLocal();saveWLocal();if(accessToken&&driveFileId)saveToDrive();renderHistory();toast('All entries cleared');}
+
+function saveClientId(){
+  var id=g('client-id-input').value.trim();
+  if(!id||!id.includes('googleusercontent.com')){toast('Paste a valid Client ID ending in .apps.googleusercontent.com');return;}
+  localStorage.setItem(CK,id);g('signin-btn').style.display='inline-flex';initGAuth(id);toast('Client ID saved - click Sign in with Google');
+}
+function initGAuth(clientId){
+  function tryInit(){
+    if(typeof google==='undefined'||!google.accounts){setTimeout(tryInit,300);return;}
+    tokenClient=google.accounts.oauth2.initTokenClient({client_id:clientId,scope:'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',callback:onToken});
+    setSyncStatus('disconnected');g('auth-banner-log').style.display='block';
+  }
+  tryInit();
+}
+function connectDrive(){if(tokenClient)tokenClient.requestAccessToken();else toast('Check your Client ID in Settings');}
+function onToken(resp){
+  if(resp.error){setSyncStatus('error');toast('Auth error: '+resp.error);return;}
+  accessToken=resp.access_token;
+  fetch('https://www.googleapis.com/oauth2/v2/userinfo',{headers:{'Authorization':'Bearer '+accessToken}}).then(function(r){return r.json();}).then(function(info){
+    g('drive-account-card').style.display='block';g('drive-user-name').textContent=info.name||'Connected';g('drive-user-email').textContent=info.email||'';g('auth-banner-log').style.display='none';setSyncStatus('connected');
+  });
+  driveFileId=localStorage.getItem(DK)||null;loadFromDrive();
+}
+function disconnectDrive(){
+  if(!confirm('Disconnect Google Drive?'))return;
+  accessToken=null;driveFileId=null;localStorage.removeItem(CK);localStorage.removeItem(DK);
+  g('drive-account-card').style.display='none';g('client-id-input').value='';g('signin-btn').style.display='none';g('auth-banner-log').style.display='block';setSyncStatus('disconnected');toast('Disconnected');
+}
+function setSyncStatus(state){
+  var dot=g('sync-dot'),lbl=g('sync-label');dot.className='sync-dot';
+  if(state==='connected'){dot.classList.add('connected');lbl.textContent='Drive synced';}
+  else if(state==='syncing'){dot.classList.add('syncing');lbl.textContent='Syncing...';}
+  else if(state==='error'){dot.classList.add('error');lbl.textContent='Sync error';}
+  else lbl.textContent='Not connected';
+}
+function loadFromDrive(){setSyncStatus('syncing');if(driveFileId)fetchFile(driveFileId);else findOrCreate();}
+function findOrCreate(){
+  fetch("https://www.googleapis.com/drive/v3/files?q=name%3D'health-tracker-data.json'+and+trashed%3Dfalse&fields=files(id)",{headers:{'Authorization':'Bearer '+accessToken}})
+    .then(function(r){return r.json();}).then(function(d){if(d.files&&d.files.length){driveFileId=d.files[0].id;localStorage.setItem(DK,driveFileId);fetchFile(driveFileId);}else createFile();})
+    .catch(function(){setSyncStatus('error');toast('Could not access Drive');});
+}
+function fetchFile(fid){
+  fetch('https://www.googleapis.com/drive/v3/files/'+fid+'?alt=media',{headers:{'Authorization':'Bearer '+accessToken}})
+    .then(function(r){if(!r.ok)throw new Error();return r.json();})
+    .then(function(d){if(d&&Array.isArray(d.entries))entries=merge(entries,d.entries);if(d&&Array.isArray(d.workouts))workouts=merge(workouts,d.workouts);saveLocal();saveWLocal();setSyncStatus('connected');setLS();renderHistory();toast('Synced with Google Drive');})
+    .catch(function(){driveFileId=null;localStorage.removeItem(DK);createFile();});
+}
+function createFile(){
+  var meta=JSON.stringify({name:'health-tracker-data.json',mimeType:'application/json'});
+  var body=JSON.stringify({entries:entries,workouts:workouts});
+  var b='-------314159265358979323846';
+  var mp='--'+b+'
+Content-Type: application/json
+
+'+meta+'
+--'+b+'
+Content-Type: application/json
+
+'+body+'
+--'+b+'--';
+  fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',{method:'POST',headers:{'Authorization':'Bearer '+accessToken,'Content-Type':'multipart/related; boundary="'+b+'"'},body:mp})
+    .then(function(r){return r.json();}).then(function(d){driveFileId=d.id;localStorage.setItem(DK,driveFileId);setSyncStatus('connected');setLS();toast('Drive file created');})
+    .catch(function(){setSyncStatus('error');toast('Could not create Drive file');});
+}
+function saveToDrive(){
+  if(!accessToken||!driveFileId)return;setSyncStatus('syncing');
+  fetch('https://www.googleapis.com/upload/drive/v3/files/'+driveFileId+'?uploadType=media',{method:'PATCH',headers:{'Authorization':'Bearer '+accessToken,'Content-Type':'application/json'},body:JSON.stringify({entries:entries,workouts:workouts,lastUpdated:new Date().toISOString()})})
+    .then(function(r){if(!r.ok)throw new Error();setSyncStatus('connected');setLS();}).catch(function(){setSyncStatus('error');toast('Drive sync failed - saved locally');});
+}
+function forceSync(){if(!accessToken){connectDrive();return;}loadFromDrive();}
+function merge(local,remote){var map={};local.forEach(function(e){map[e.id]=e;});remote.forEach(function(e){if(!map[e.id])map[e.id]=e;});return Object.values(map).sort(function(a,b){return(b.date||'').localeCompare(a.date||'')||b.id-a.id;});}
+function setLS(){var el=g('last-synced');if(el)el.textContent='Last synced: '+new Date().toLocaleTimeString();}
+
+function loadReminders(){
+  try{var r=JSON.parse(localStorage.getItem(RK)||'{}');if(r.morning)g('reminder-morning').value=r.morning;if(r.midday)g('reminder-midday').value=r.midday;if(r.evening)g('reminder-evening').value=r.evening;if(r.morningOn===false)g('reminder-morning-on').checked=false;if(r.middayOn===false)g('reminder-midday-on').checked=false;if(r.eveningOn===false)g('reminder-evening-on').checked=false;}catch(e){}
+  checkNotif();
+}
+function saveReminders(){
+  localStorage.setItem(RK,JSON.stringify({morning:g('reminder-morning').value,midday:g('reminder-midday').value,evening:g('reminder-evening').value,morningOn:g('reminder-morning-on').checked,middayOn:g('reminder-midday-on').checked,eveningOn:g('reminder-evening-on').checked}));
+  startReminders();
+}
+function enableNotifications(){
+  if(!('Notification' in window)){g('notif-status').textContent='Not supported';return;}
+  if(Notification.permission==='denied'){g('notif-blocked-banner').style.display='block';return;}
+  Notification.requestPermission().then(function(p){checkNotif();if(p==='granted'){startReminders();new Notification('Health Tracker',{body:'Reminders enabled!'});toast('Notifications enabled');}});
+}
+function checkNotif(){
+  if(!('Notification' in window))return;
+  var btn=g('enable-notif-btn'),st=g('notif-status');
+  if(Notification.permission==='granted'){if(btn)btn.style.display='none';st.textContent='Enabled';st.style.color='var(--green-text)';startReminders();}
+  else if(Notification.permission==='denied')g('notif-blocked-banner').style.display='block';
+}
+var lastND={};
+function startReminders(){
+  if(reminderInterval)clearInterval(reminderInterval);
+  if(Notification.permission!=='granted')return;
+  reminderInterval=setInterval(function(){
+    var now=new Date(),hhmm=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0'),today=now.toDateString();
+    [{id:'morning',body:'Time to log breakfast and morning symptoms.'},{id:'midday',body:'Time to log lunch and midday symptoms.'},{id:'evening',body:'Time to log dinner and evening symptoms.'}].forEach(function(r){
+      var t=g('reminder-'+r.id),on=g('reminder-'+r.id+'-on');
+      if(!t||!on||!on.checked||t.value!==hhmm)return;
+      var k=r.id+'-'+today;if(lastND[k])return;lastND[k]=true;new Notification('Health Tracker',{body:r.body});
+    });
+  },30000);
+}
+
+init();
+</script>
+</body>
+</html>
